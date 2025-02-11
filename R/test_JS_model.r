@@ -1,4 +1,4 @@
-ns <- 8 #number of strata
+ns <- 9 #number of strata
 ps <- dpois(1:8, lambda = 3)
 ps <- ps / sum(ps)
 
@@ -23,3 +23,4 @@ for(i in 1:N){
     }
     
 }
+## jan messing around
