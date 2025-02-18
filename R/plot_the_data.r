@@ -19,12 +19,14 @@ est <- as.list(sd,"Estimate",report=TRUE) %>%
 se <- as.list(sd,"Std. Error",report=TRUE) %>%
   reshape2::melt()
 
-data.frame(est,se = se$value, obs = c(unlist(pobs))) %>%
+g <- data.frame(est,se = se$value, obs = c(unlist(pobs))) %>%
   filter(value>0) %>%
   ggplot(aes(x=Var2, y = value)) +
+  geom_col(aes(x=Var2,y = obs), color = "lightgrey", alpha = 0.2) +
   geom_point(color = "red", alpha = 0.5, size = 2) +
   geom_errorbar(aes(ymin = value - 1.96 * se, ymax = value + 1.96 * se), width = 0.2, color = "red") +
-  geom_point(aes(x=Var2,y = obs)) +
   facet_wrap(~Var1, ncol = 2) +
-  theme_classic()
+  theme_classic() +
+  theme(text = element_text(size = 16))
 
+ggsave(filename = "output/plot_the_data.png", g, height = 8, width = 8)
