@@ -16,10 +16,10 @@ d <- read.csv("data/simpleData2.csv") %>%
   filter(!(Tag1==""))
 
 
-data <- list(t_l = d$t_l,
-             r_l = d$r_l,
-             t_k = d$t_k,
-             r_k = d$r_k)
+data <- list(t_l = d$t_l, #tagging location
+             r_l = d$r_l, #recapture location
+             t_k = d$t_k, #tagging week
+             r_k = d$r_k) #recapture week, last week if not recapture
 
 # Initial parameter values
 parameters <- list(
@@ -80,11 +80,18 @@ f <- function(parms){
   RTMB::REPORT(phi)
   RTMB::REPORT(p)
   RTMB::REPORT(nll)
-  q_phi <- RTMB::qlogis(phi)
-  q_p <- RTMB::qlogis(p)
-  q_phi_p <- (phi%*%p)
+
+  q_phi <- RTMB::qlogis(phi) #Survival
+  q_p <- RTMB::qlogis(p) #detection probability
+
+  q_phi_p <- RTMB::qlogis((phi%*%p)[1:5,1:6])
+  indices <- which(upper.tri(q_phi_p, diag=FALSE), arr.ind=TRUE)
+  # mat[indices[order(indices[,1]),]]
+  RTMB::REPORT(q_phi)
+  RTMB::REPORT(q_p)
   RTMB::REPORT(q_phi_p)
   RTMB::ADREPORT(q_phi_p)
+
   return(-sum(log(nll)))
 }
 
