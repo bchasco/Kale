@@ -1,40 +1,30 @@
-set.seed(123)
+library(expm)  # Matrix exponentiation
+library(tidyr)
+library(dplyr)
 
-T <- 10  # Number of sampling occasions
-n_fish <- 100  # Initial number of marked individuals
+rm(list=ls())
 
-phi <- 0.8  # True survival probability
-p <- runif(T, 0.2, 0.6)  # Capture probabilities per occasion
+#Read in data
+d <- read.csv("data/simpleData2.csv") %>%
+  mutate(t_wk = lubridate::week(lubridate::mdy(TagDate)),
+         r_wk = lubridate::week(lubridate::mdy(RecapDate))) %>%
+  filter(t_wk > 10) %>%
+  mutate(t_k = t_wk - min(t_wk) + 1,
+         r_k = r_wk - min(t_wk) + 1) %>%
+  mutate(t_l = TagState,
+         r_l = RecapState) %>%
+  filter(!(Tag1==""))
 
-# Generate first capture histories
-capture_histories <- matrix(0, n_fish, T)
 
-for (i in 1:n_fish) {
-  alive <- TRUE
-  for (t in 1:T) {
-    if (alive) {
-      if (runif(1) < p[t]) {
-        capture_histories[i, t] <- 1  # Captured
-        break  # Tag is removed, no further recaptures
-      }
-      if (runif(1) > phi) {
-        alive <- FALSE  # Dies or exits study
-      }
-    }
-  }
-}
-
-# Convert to RTMB format
-capture_data <- as.data.frame(capture_histories)
-
-data <- list(ch = capture_data
-             ,T = ncol(capture_data))
+data <- list(t_l = d$t_l,
+             r_l = d$r_l,
+             t_k = d$t_k,
+             r_k = d$r_k)
 
 # Initial parameter values
 parameters <- list(
-  logit_phi = qlogis(0.8),
-  logit_p = qlogis(runif(T, 0.2, 0.6)),
-  log_N0 = log(100)
+  phi_par = rep(0,15),
+  p_par = rep(-1,5)
 )
 
 f <- function(parms){
@@ -42,79 +32,61 @@ f <- function(parms){
   RTMB::getAll(data,
                parms)
 
-  phi <- plogis(logit_phi)
-  p <- plogis(logit_p)
-  N0 <- exp(log_N0)
+  nll <- rep(0,length(t_l))
 
+  #Survival
+  phi <- matrix(0,6,6)
+  ii <- 1
+  for(i in 1:5){
+    for(j in i:5){
+      phi[i,j] <- exp(phi_par[ii])
+      ii <- ii + 1
+    }
+    phi[,6] <- 1
+  }
+  for(i in 1:5){
+    phi[i,] <- phi[i,]/sum(phi[i,])
+  }
+
+  #Detection probability
+  p <- matrix(0,6,6)
+  for(i in 1:5) p[i,i] <- RTMB::plogis(p_par[i])
+  p[,6] <- c(1-RTMB::plogis(p_par),1)
+
+  # Compute probability
+  for(i in 1:length(t_l)){
+    m <- matrix(0,6,6)
+    diag(m) <- 1
+    last_k <- ifelse(is.na(r_k[i]),max(na.omit(r_k)),r_k[i])
+    if(is.na(r_k[i])){#never recapped
+      for(k in (t_k[i]+1):last_k){
+        m <- m %*% phi %*% diag(p[,6])
+      }
+    }else{
+      for(k in (t_k[i]+1):r_k[i]){
+        if(k<last_k){
+          m <- m %*% phi %*% diag(p[,6]) #non-detection
+        }else{
+          m <- m %*% (phi) %*% diag(p[,r_l[i]]) #recap
+        }
+      }
+      # m <- m %*% diag(phi[,6]) #Death
+    }
+    delta <- rep(0,6)
+    delta[t_l[i]] <- 1
+    nll[i] <- t(delta) %*% m %*% rep(1,6)
+  }
+
+  RTMB::REPORT(phi)
+  RTMB::REPORT(p)
+  RTMB::REPORT(nll)
+  q_phi <- RTMB::qlogis(phi)
+  q_p <- RTMB::qlogis(p)
+  q_phi_p <- (phi%*%p)
+  RTMB::REPORT(q_phi_p)
+  RTMB::ADREPORT(q_phi_p)
+  return(-sum(log(nll)))
 }
-#   # Write model in C++
-# model_code <- "
-# #include <TMB.hpp>
-#
-# template<class Type>
-# Type objective_function<Type>::operator() () {
-#     DATA_MATRIX(capture_histories);  // Capture history matrix (individuals x time)
-#     int T = capture_histories.cols(); // Number of sampling occasions
-#
-#     PARAMETER(logit_phi);  // Survival probability (logit scale)
-#     PARAMETER_VECTOR(logit_p);  // Capture probabilities at each time step
-#     PARAMETER(log_N0);  // Initial population size (log scale)
-#
-#     // Convert parameters to probability space
-#     Type phi = invlogit(logit_phi);
-#     vector<Type> p = invlogit(logit_p);
-#     Type N0 = exp(log_N0); // Population size
-#
-#     // Likelihood
-#     Type nll = 0;
-#
-#     // Number of individuals
-#     int n_indiv = capture_histories.rows();
-#
-#     for (int i = 0; i < n_indiv; i++) {
-#         bool captured = false;
-#         Type prob = 1.0;  // Initialize probability
-#
-#         for (int t = 0; t < T; t++) {
-#             if (capture_histories(i, t) == 1) {
-#                 if (!captured) {
-#                     // First capture event
-#                     prob *= (1 - phi) * p(t);
-#                     captured = true;
-#                 }
-#             } else if (!captured) {
-#                 // Survived but not captured
-#                 prob *= phi * (1 - p(t));
-#             }
-#         }
-#
-#         nll -= log(prob);  // Accumulate negative log-likelihood
-#     }
-#
-#     REPORT(phi);
-#     REPORT(p);
-#     REPORT(N0);
-#
-#     return nll;
-# }
-# "
-#
-# # Compile the model
-# writeLines(model_code, "jolly_seber_removal.cpp")
-# compile("jolly_seber_removal.cpp")
-# dyn.load(dynlib("jolly_seber_removal"))
-#
-# # Prepare Data for RTMB
-# data_list <- list(
-#   capture_histories = as.matrix(capture_data)
-# )
-#
-# # Initial parameter values
-# parameters <- list(
-#   logit_phi = qlogis(0.8),
-#   logit_p = qlogis(runif(T, 0.2, 0.6)),
-#   log_N0 = log(100)
-# )
 
 obj <- RTMB::MakeADFun(f,
                        parameters,
@@ -123,12 +95,8 @@ opt <- nlminb(obj$par,
               obj$fn,
               obj$gr)
 
-# # Extract estimates
-# rep <- obj$report()
-#
-# # Print Results
-# list(
-#   survival = plogis(opt$par["logit_phi"]),
-#   capture_probs = plogis(opt$par["logit_p"]),
-#   initial_population = exp(opt$par["log_N0"])
-# )
+
+rep <- obj$report()
+sd <- RTMB::sdreport(obj)
+
+source("R/plot_the_data.r")
