@@ -29,3 +29,16 @@ g <- data.frame(est,se = se$value, obs = c(unlist(pobs))) %>%
   theme(text = element_text(size = 16))
 print(g)
 ggsave(filename = "output/plot_the_data.png", g, height = 8, width = 8)
+
+#fit to arrival process
+obs <- table(data$t_k)
+obs <- obs / sum(obs)
+df <- data.frame(wk = as.numeric(as.character(names(table(d$t_wk)))),
+                 pred = rep$r,
+                 obs = obs) %>%
+  ggplot(aes(x = wk, y = obs)) +
+  geom_point(size = 3) +
+  geom_line(aes(x = wk, y = pred)) +
+  theme_bw() +
+  theme(text = element_text(size = 16))
+print(df)

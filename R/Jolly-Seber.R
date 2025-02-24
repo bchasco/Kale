@@ -4,27 +4,21 @@ library(dplyr)
 
 rm(list=ls())
 
-#Read in data
-d <- read.csv("data/simpleData2.csv") %>%
-  mutate(t_wk = lubridate::week(lubridate::mdy(TagDate)),
-         r_wk = lubridate::week(lubridate::mdy(RecapDate))) %>%
-  filter(t_wk > 10) %>%
-  mutate(t_k = t_wk - min(t_wk) + 1,
-         r_k = r_wk - min(t_wk) + 1) %>%
-  mutate(t_l = TagState,
-         r_l = RecapState) %>%
-  filter(!(Tag1==""))
 
 
 data <- list(t_l = d$t_l, #tagging location
              r_l = d$r_l, #recapture location
              t_k = d$t_k, #tagging week
-             r_k = d$r_k) #recapture week, last week if not recapture
+             r_k = d$r_k,
+             tag = d$tag,
+             n = d$n) #recapture week, last week if not recapture
 
 # Initial parameter values
 parameters <- list(
   phi_par = rep(0,15),
-  p_par = rep(-1,5)
+  p_par = rep(-1,5),
+  r_par = rep(0, length(unique(data$t_k))-1),
+  lam = log(10000)
 )
 
 f <- function(parms){
@@ -32,7 +26,13 @@ f <- function(parms){
   RTMB::getAll(data,
                parms)
 
-  nll <- rep(0,length(t_l))
+  nll <- rep(1,length(t_l))
+  nll2 <- 0
+
+  r <- c(exp(r_par),1)
+  r <- r/sum(r)
+
+  nll2 <- RTMB::dpois(length(t_l),exp(lam))
 
   #Survival
   phi <- matrix(0,6,6)
@@ -48,6 +48,7 @@ f <- function(parms){
     phi[i,] <- phi[i,]/sum(phi[i,])
   }
 
+
   #Detection probability
   p <- matrix(0,6,6)
   for(i in 1:5) p[i,i] <- RTMB::plogis(p_par[i])
@@ -55,26 +56,39 @@ f <- function(parms){
 
   # Compute probability
   for(i in 1:length(t_l)){
-    m <- matrix(0,6,6)
-    diag(m) <- 1
-    last_k <- ifelse(is.na(r_k[i]),max(na.omit(r_k)),r_k[i])
-    if(is.na(r_k[i])){#never recapped
-      for(k in (t_k[i]+1):last_k){
-        m <- m %*% phi %*% diag(p[,6])
-      }
-    }else{
-      for(k in (t_k[i]+1):r_k[i]){
-        if(k<last_k){
-          m <- m %*% phi %*% diag(p[,6]) #non-detection
-        }else{
-          m <- m %*% (phi) %*% diag(p[,r_l[i]]) #recap
+    nll2 <- nll2 - log(r[t_k[i]]) * n[i]
+
+    if(tag[i]==TRUE){
+      print(paste(i,tag[i]))
+      m <- matrix(0,6,6)
+      diag(m) <- 1
+      last_k <- ifelse(is.na(r_k[i]),max(na.omit(r_k)),r_k[i])
+      if(is.na(r_k[i])){#never recapped
+        for(k in (t_k[i]+1):last_k){
+          m <- m %*% phi %*% diag(p[,6])
         }
       }
-      # m <- m %*% diag(phi[,6]) #Death
+      if(!is.na(r_k[i])){
+        if(r_k[i]>0){
+          # print(r_k[i])
+          for(k in (t_k[i]+1):r_k[i]){
+            if(k<last_k){
+              m <- m %*% phi %*% diag(p[,6]) #non-detection
+            }else{
+              m <- m %*% phi[,] %*% diag(p[,r_l[i]]) #recap
+            }
+          }
+          last_p <- matrix(0,6,6)
+          last_p[6,6] <- 1
+          # m <- m %*% phi %*% last_p  #Death
+        }
+      }
+      # print(m)
+      delta <- rep(0,6)
+      delta[t_l[i]] <- 1
+      nll[i] <- t(delta) %*% m %*% rep(1,6)
+
     }
-    delta <- rep(0,6)
-    delta[t_l[i]] <- 1
-    nll[i] <- t(delta) %*% m %*% rep(1,6)
   }
 
   RTMB::REPORT(phi)
@@ -91,8 +105,9 @@ f <- function(parms){
   RTMB::REPORT(q_p)
   RTMB::REPORT(q_phi_p)
   RTMB::ADREPORT(q_phi_p)
+  RTMB::REPORT(r)
 
-  return(-sum(log(nll)))
+  return(-sum(log(nll)*n))
 }
 
 obj <- RTMB::MakeADFun(f,

@@ -1,0 +1,168 @@
+
+#Methods
+
+This is an individual based model describing the estimate of carcass abundance in the Lewis River. This model is different than that of Schwarz. The goal is to estimate the total carcass abundance (i.e., $\lambda$ \ref{GenericLikelihood})
+
+
+To understand the likelihood, it is best to start with a model that has no spatial component.
+\begin{equation} \label{eq:Likelihood}
+  L = P(B_{total}|\lambda p)\prod_i^{B_{total}} P(t_i|\boldsymbol{\pi})P(D_{i,t}|t_i,\phi_i,p_i)P(T_{i,t}|D_{i,t},p_i)P(R_{i,t\prime}|T_{i,t},\phi_i,p_i) 
+\end{equation}
+
+Breaking down the likelihood into it's components, the probability of the observed total number of carcasses is
+\begin{equation}\label{P_PopulationSize}
+  P(B_{total}|\lambda p)
+\end{equation}
+where,  $\lambda$ is total population size, and p is the capture probability of a carcass.
+The probability of the arrival process is,
+\begin{equation}\label{P_arrival}
+  P(t_i|\boldsymbol{\pi})
+\end{equation}
+where, $t_i$ is a latent effect, and $\boldsymbol{\pi}$ vector of arrival probabilities for each time-step.
+The probability of the initial detection for any carcass, 
+\begin{equation}\label{P_initial detection}
+  P(D_{i,t}|t_i,\phi_i,p_i)
+\end{equation}
+where, $D_{i,t} = 1$, $t_i$ is the latent estimate of arrival time, $phi_i$ is the survival probability, and $p_i$ is the detection probability.
+The probability of carcass being tagged is,
+\begin{equation}\label{P_tagging}
+  P(T_{i,t}|D_{i,t},\psi)
+\end{equation}
+where, $T_{i,t}=1$ is a carcass was tagged, $\psi$ is the tagging rate.
+Finally, there is probability of recapture,
+
+\begin{equation}\label{P_recapture}
+  P(R_{i,t\prime}|T_{i,t},\phi_i,p_i)
+\end{equation}
+
+where, $R_{i,t\prime} = 1$ for a carcass recaptured on day $t\prime$.
+
+```{r kable-table, echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+library(kableExtra)
+
+param_table <- data.frame(
+  Symbol = c("$B_{\\text{total}}$", 
+             "$\\lambda$", 
+             "$t_i$", 
+             "$\\boldsymbol{\\pi}$", 
+             "$D_{i,t}$", 
+             "$p$", 
+             "$\\phi$", 
+             "$T_{i,t}$", 
+             "$\\psi$", 
+             "$R_{i,t'}$"),
+  Description = c("True total number of carcasses", 
+                  "Expected total number of carcasses", 
+                  "Carcass arrival time",
+                  "Arrival time probabilities", 
+                  "Detection indicator (1 if detected, 0 otherwise)", 
+                  "Detection probability", 
+                  "Persistence probability", 
+                  "Tagging indicator (1 if tagged, 0 otherwise)", 
+                  "Tagging probability", 
+                  "Recapture indicator (1 if recaptured, 0 otherwise)"),
+  Type = c("Latent (to be estimated)", 
+           "Parameter (to be estimated)", 
+           "Data (observed weekly)", 
+           "Parameter (to be estimated)", 
+           "Data (observed)", 
+           "Parameter (to be estimated)", 
+           "Parameter (to be estimated)", 
+           "Data (observed)", 
+           "Parameter (to be estimated)", 
+           "Data (observed)")
+)
+
+kable(param_table, format = "html", escape = FALSE, caption = "Table 1: Model Parameters and Data") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#Read in data
+library(tidyr)
+library(dplyr)
+library(kableExtra)
+
+d <- read.csv("data/simpleData2.csv") %>%
+  mutate(t_wk = lubridate::week(lubridate::mdy(TagDate)),
+         r_wk = lubridate::week(lubridate::mdy(RecapDate))) %>%
+  filter(t_wk > 10) %>%
+  mutate(t_k = t_wk - min(t_wk) + 1,
+         r_k = r_wk - min(t_wk) + 1) %>%
+  mutate(t_l = TagState,
+         r_l = RecapState) %>%
+  mutate(tag = ifelse(Tag1=="",FALSE,TRUE)) %>%
+  group_by(t_k,r_k,t_l,r_l,tag) %>%
+  summarise(n = n())
+
+kable(head(d), caption = "Table 2. Fish survey data from the Lewis River from 2024 includes the tag week (t_k), recapture week (r_k), tag location (t_l), recapture location (r_l), whether the fish was tagged (tag), and the number of carcasses (n), with that particular unique spatiotemporal combination of tagging and recapture.") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Next we can create the data and parameter lists for estimating the model parameters.
+
+```{r, warning=FALSE}
+#Data list
+data <- list(t_l = d$t_l, #tagging location
+             r_l = d$r_l, #recapture location
+             t_k = d$t_k, #tagging week
+             r_k = d$r_k,
+             tag = d$tag,
+             n = d$n) #recapture week, last week if not recapture
+
+# Initial parameter values
+parameters <- list(
+  phi_par = 0,
+  p_par = 0,
+  tau_re = rep(0,length(data$t_l)),
+  tau_par = 0,
+  pi_par = rep(0,length(unique(data$t_k))-1),
+  lam_par = log(10000)
+)
+```
+
+Now lets create the likelihoods function given the data.
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
+library(RTMB)
+```
+
+```{r, message=FALSE, warning=FALSE}
+f <- function(parms){
+
+  RTMB::getAll(data,
+               parms)
+  nll <- 1
+  
+  #First likelihood of the observed number of carcasses
+  # sum(d$n) %~% RTMB::dpois(exp(lam_par) * p_par)
+
+  #This is the amount of time to first detection
+  tau_re %~% RTMB::dexp(exp(tau_par))
+  pi <- exp(c(pi_par,0))/sum(exp(c(pi_par,0)))  
+  for(i in 1:length(t_l)){
+    
+    #Second likelihood
+    tau <- rep(0,length(pi))
+    # tau[t_i[i]] <- n[i]
+    
+  }
+  
+  # return(-sum(log(nll)*n))
+  return(0)
+}
+
+```
+
+Next we can optimize.
+```{r, message=FALSE, warning=FALSE}
+obj <- RTMB::MakeADFun(f,
+                       parameters,
+                       # random = 
+                       silent = FALSE)
+opt <- nlminb(obj$par,
+              obj$fn,
+              obj$gr)
+
+```

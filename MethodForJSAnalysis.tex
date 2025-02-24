@@ -1,0 +1,380 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  pdftitle={Methods for JS Lewis analysis},
+  pdfauthor={Brandon},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Methods for JS Lewis analysis}
+\author{Brandon}
+\date{2025-02-20}
+
+\begin{document}
+\maketitle
+
+\hypertarget{methods}{%
+\section{Methods}\label{methods}}
+
+This is an individual based model describing the estimate of carcass
+abundance in the Lewis River. This model is different than that of
+Schwarz. The goal is to estimate the total carcass abundance (i.e.,
+\(\lambda\) \ref{GenericLikelihood})
+
+To understand the likelihood, it is best to start with a model that has
+no spatial component. \begin{equation} \label{eq:Likelihood}
+  L = P(B_{total}|\lambda p)\prod_i^{B_{total}} P(t_i|\boldsymbol{\pi})P(D_{i,t}|t_i,\phi_i,p_i)P(T_{i,t}|D_{i,t},p_i)P(R_{i,t\prime}|T_{i,t},\phi_i,p_i) 
+\end{equation}
+
+Breaking down the likelihood into it's components, the probability of
+the observed total number of carcasses is
+\begin{equation}\label{P_PopulationSize}
+  P(B_{total}|\lambda p)
+\end{equation} where, \(\lambda\) is total population size, and p is the
+capture probability of a carcass. The probability of the arrival process
+is, \begin{equation}\label{P_arrival}
+  P(t_i|\boldsymbol{\pi})
+\end{equation} where, \(t_i\) is a latent effect, and
+\(\boldsymbol{\pi}\) vector of arrival probabilities for each time-step.
+The probability of the initial detection for any carcass,
+\begin{equation}\label{P_initial detection}
+  P(D_{i,t}|t_i,\phi_i,p_i)
+\end{equation} where, \(D_{i,t} = 1\), \(t_i\) is the latent estimate of
+arrival time, \(phi_i\) is the survival probability, and \(p_i\) is the
+detection probability. The probability of carcass being tagged is,
+\begin{equation}\label{P_tagging}
+  P(T_{i,t}|D_{i,t},\psi)
+\end{equation} where, \(T_{i,t}=1\) is a carcass was tagged, \(\psi\) is
+the tagging rate. Finally, there is probability of recapture,
+
+\begin{equation}\label{P_recapture}
+  P(R_{i,t\prime}|T_{i,t},\phi_i,p_i)
+\end{equation}
+
+where, \(R_{i,t\prime} = 1\) for a carcass recaptured on day
+\(t\prime\).
+
+\hypertarget{create-the-data}{%
+\subsection{Create the data}\label{create-the-data}}
+
+We begin by reading the data and transforming some of the output to make
+it easier to work in RTMB.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Data list}
+\FunctionTok{library}\NormalTok{(dplyr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Attaching package: 'dplyr'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(tidyr)}
+
+\NormalTok{d }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"data/simpleData2.csv"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{t\_wk =}\NormalTok{ lubridate}\SpecialCharTok{::}\FunctionTok{week}\NormalTok{(lubridate}\SpecialCharTok{::}\FunctionTok{mdy}\NormalTok{(TagDate)),}
+         \AttributeTok{r\_wk =}\NormalTok{ lubridate}\SpecialCharTok{::}\FunctionTok{week}\NormalTok{(lubridate}\SpecialCharTok{::}\FunctionTok{mdy}\NormalTok{(RecapDate)),}
+         \AttributeTok{t\_yr =}\NormalTok{ lubridate}\SpecialCharTok{::}\FunctionTok{year}\NormalTok{(lubridate}\SpecialCharTok{::}\FunctionTok{mdy}\NormalTok{(TagDate)),}
+         \AttributeTok{r\_yr =}\NormalTok{ lubridate}\SpecialCharTok{::}\FunctionTok{year}\NormalTok{(lubridate}\SpecialCharTok{::}\FunctionTok{mdy}\NormalTok{(RecapDate))) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(t\_yr }\SpecialCharTok{==} \DecValTok{2024}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{filter}\NormalTok{(t\_wk }\SpecialCharTok{\textgreater{}} \DecValTok{10}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{t\_k =}\NormalTok{ t\_wk }\SpecialCharTok{{-}} \FunctionTok{min}\NormalTok{(t\_wk) }\SpecialCharTok{+} \DecValTok{1}\NormalTok{,}
+         \AttributeTok{r\_k =}\NormalTok{ r\_wk }\SpecialCharTok{{-}} \FunctionTok{min}\NormalTok{(t\_wk) }\SpecialCharTok{+} \DecValTok{1}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{t\_l =}\NormalTok{ TagState,}
+         \AttributeTok{r\_l =}\NormalTok{ RecapState) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(r\_wk) }\SpecialCharTok{|}\NormalTok{ r\_k}\SpecialCharTok{\textgreater{}}\DecValTok{0}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{tag =} \FunctionTok{ifelse}\NormalTok{(Tag1}\SpecialCharTok{==}\StringTok{""}\NormalTok{,}\ConstantTok{FALSE}\NormalTok{,}\ConstantTok{TRUE}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(t\_k,r\_k,t\_l,r\_l,tag) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{n =} \FunctionTok{n}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `summarise()` has grouped output by 't_k', 'r_k', 't_l', 'r_l'. You can
+## override using the `.groups` argument.
+\end{verbatim}
+
+\hypertarget{just-model-the-cjs-part-of-the-likelihood}{%
+\subsection{Just model the CJS part of the
+likelihood}\label{just-model-the-cjs-part-of-the-likelihood}}
+
+It is possible to breaks down the analysis in to separate components. We
+can start by just looking at the Cormack-Jolly-Seber part of the model.
+For those tagged individuals that are tagged, we can estimate survival
+and detection probability. For now, we can simply assume all fish are
+equal and the detection and survival is constant across time and
+location.
+
+I am going to use a matrix-algebra approach to analyzing the data. And
+start with the simplest data set possible.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}\AttributeTok{t\_l =}\NormalTok{ d}\SpecialCharTok{$}\NormalTok{t\_l, }\CommentTok{\#tagging location}
+             \AttributeTok{r\_l =}\NormalTok{ d}\SpecialCharTok{$}\NormalTok{r\_l, }\CommentTok{\#recapture location}
+             \AttributeTok{t\_k =}\NormalTok{ d}\SpecialCharTok{$}\NormalTok{t\_k, }\CommentTok{\#tagging week}
+             \AttributeTok{r\_k =}\NormalTok{ d}\SpecialCharTok{$}\NormalTok{r\_k,}
+             \AttributeTok{tag =}\NormalTok{ d}\SpecialCharTok{$}\NormalTok{tag,}
+             \AttributeTok{n =}\NormalTok{ d}\SpecialCharTok{$}\NormalTok{n) }\CommentTok{\#recapture week, last week if not recapture}
+
+\CommentTok{\# Initial parameter values}
+\NormalTok{parameters }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{(}
+  \AttributeTok{phi\_par =} \DecValTok{0}\NormalTok{,}
+  \AttributeTok{p\_par =} \DecValTok{0}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+Now lets create the likelihoods function given the data.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{f }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(parms)\{}
+
+\NormalTok{  RTMB}\SpecialCharTok{::}\FunctionTok{getAll}\NormalTok{(data,}
+\NormalTok{               parms)}
+  
+  \CommentTok{\#Negative}
+\NormalTok{  nll }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\FunctionTok{length}\NormalTok{(d}\SpecialCharTok{$}\NormalTok{t\_l))}
+  
+  \CommentTok{\#Survival}
+\NormalTok{  phi }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{)}
+\NormalTok{  phi[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{] }\OtherTok{\textless{}{-}} \SpecialCharTok{{-}}\FunctionTok{exp}\NormalTok{(phi\_par)}
+\NormalTok{  phi[}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{] }\OtherTok{\textless{}{-}} \SpecialCharTok{{-}}\NormalTok{phi[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{]}
+\NormalTok{  phi }\OtherTok{\textless{}{-}}\NormalTok{ Matrix}\SpecialCharTok{::}\FunctionTok{expm}\NormalTok{(phi)}
+  
+  \CommentTok{\#Detection probability}
+\NormalTok{  p }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{)}
+\NormalTok{  p[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{] }\OtherTok{\textless{}{-}} \SpecialCharTok{{-}}\FunctionTok{exp}\NormalTok{(p\_par)}
+\NormalTok{  p[}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{] }\OtherTok{\textless{}{-}} \SpecialCharTok{{-}}\NormalTok{p[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{]}
+\NormalTok{  p }\OtherTok{\textless{}{-}}\NormalTok{ Matrix}\SpecialCharTok{::}\FunctionTok{expm}\NormalTok{(p)}
+  
+  \CommentTok{\#This is the amount of time to first detection}
+  \ControlFlowTok{for}\NormalTok{(i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{length}\NormalTok{(t\_l))\{}
+    
+    \CommentTok{\#Accumulator}
+\NormalTok{    m }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{)}
+    \FunctionTok{diag}\NormalTok{(m) }\OtherTok{\textless{}{-}} \DecValTok{1}
+    
+    \CommentTok{\#Initial state}
+\NormalTok{    delta }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{,}\DecValTok{2}\NormalTok{)}
+\NormalTok{    delta[}\DecValTok{1}\NormalTok{] }\OtherTok{\textless{}{-}} \DecValTok{1}
+    \ControlFlowTok{if}\NormalTok{(tag[i] }\SpecialCharTok{==} \ConstantTok{TRUE}\NormalTok{ )\{}
+      \ControlFlowTok{if}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(r\_k[i]))\{}
+\NormalTok{        Ui }\OtherTok{\textless{}{-}} \DecValTok{16}
+\NormalTok{      \}}\ControlFlowTok{else}\NormalTok{\{}
+\NormalTok{        Ui }\OtherTok{\textless{}{-}}\NormalTok{ r\_k[i]}
+\NormalTok{      \}}
+      \ControlFlowTok{for}\NormalTok{(j }\ControlFlowTok{in}\NormalTok{ (t\_k[i]}\SpecialCharTok{+}\DecValTok{1}\NormalTok{)}\SpecialCharTok{:}\NormalTok{Ui)\{}
+        \ControlFlowTok{if}\NormalTok{(j}\SpecialCharTok{\textless{}}\NormalTok{Ui)\{ }\CommentTok{\#not detected}
+\NormalTok{          m }\OtherTok{\textless{}{-}}\NormalTok{ m }\SpecialCharTok{\%*\%}\NormalTok{ phi }\SpecialCharTok{\%*\%} \FunctionTok{diag}\NormalTok{(p[,}\DecValTok{2}\NormalTok{])}
+\NormalTok{        \}}\ControlFlowTok{else}\NormalTok{\{}\CommentTok{\#last observation}
+          \ControlFlowTok{if}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(r\_k[i]))\{}\CommentTok{\#not detected}
+\NormalTok{            m }\OtherTok{\textless{}{-}}\NormalTok{ m }\SpecialCharTok{\%*\%}\NormalTok{ phi }\SpecialCharTok{\%*\%} \FunctionTok{diag}\NormalTok{(p[,}\DecValTok{2}\NormalTok{])}
+\NormalTok{          \}}\ControlFlowTok{else}\NormalTok{\{}\CommentTok{\#Detected}
+\NormalTok{            m }\OtherTok{\textless{}{-}}\NormalTok{ m }\SpecialCharTok{\%*\%}\NormalTok{ phi }\SpecialCharTok{\%*\%} \FunctionTok{diag}\NormalTok{(p[,}\DecValTok{1}\NormalTok{])}
+\NormalTok{          \}}
+\NormalTok{        \}}
+\NormalTok{      \}}
+\NormalTok{    \}}
+\NormalTok{    nll[i] }\OtherTok{\textless{}{-}} \FunctionTok{log}\NormalTok{(}\FunctionTok{t}\NormalTok{(delta) }\SpecialCharTok{\%*\%}\NormalTok{ m }\SpecialCharTok{\%*\%} \FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{))}
+\NormalTok{  \}}
+
+\NormalTok{  RTMB}\SpecialCharTok{::}\FunctionTok{REPORT}\NormalTok{(nll)  }
+\NormalTok{  RTMB}\SpecialCharTok{::}\FunctionTok{REPORT}\NormalTok{(phi)  }
+\NormalTok{  RTMB}\SpecialCharTok{::}\FunctionTok{REPORT}\NormalTok{(p)  }
+  \FunctionTok{return}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{sum}\NormalTok{(nll}\SpecialCharTok{*}\NormalTok{n))}
+  \CommentTok{\# return(0)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Next we can optimize.
+
+\begin{verbatim}
+## outer mgc:  964.4787 
+## outer mgc:  477.1059 
+## outer mgc:  397.2693 
+## outer mgc:  83.36825 
+## outer mgc:  115.5598 
+## outer mgc:  23.24397 
+## outer mgc:  4.240043 
+## outer mgc:  6.129297 
+## outer mgc:  6.249639 
+## outer mgc:  1.467554 
+## outer mgc:  2.381205 
+## outer mgc:  0.07488745 
+## outer mgc:  0.0007851369 
+## outer mgc:  1.521512e-05
+\end{verbatim}
+
+Finally, we can look at the results of \(\phi\) and \(p\) matrixes,
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Survival/persistence}
+\FunctionTok{print}\NormalTok{(}\FunctionTok{round}\NormalTok{(rep}\SpecialCharTok{$}\NormalTok{phi,}\DecValTok{2}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 2 x 2 Matrix of class "dgeMatrix"
+##      [,1] [,2]
+## [1,] 0.51 0.49
+## [2,] 0.00 1.00
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Survival/persistence}
+\FunctionTok{print}\NormalTok{(}\FunctionTok{round}\NormalTok{(rep}\SpecialCharTok{$}\NormalTok{p,}\DecValTok{2}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 2 x 2 Matrix of class "dgeMatrix"
+##      [,1] [,2]
+## [1,] 0.61 0.39
+## [2,] 0.00 1.00
+\end{verbatim}
+
+In this simple model, for the tagged individuals, the
+``persistence/survival'' between time steps is 0.51 and the detection
+probability is 0.61.
+
+\hypertarget{just-model-the-cjs-part-of-the-likelihood-1}{%
+\subsection{Just model the CJS part of the
+likelihood}\label{just-model-the-cjs-part-of-the-likelihood-1}}
+
+\hypertarget{tables}{%
+\section{Tables}\label{tables}}
+
+\end{document}
