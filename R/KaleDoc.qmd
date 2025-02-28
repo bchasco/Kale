@@ -1,0 +1,367 @@
+---
+title: "Kale : Lewis River Carcassess"
+author: "Brandon Chasco"
+format: html
+editor: visual
+---
+
+## Model
+
+### Births
+
+The number of carcasses births in each time period $t$ is equal to,
+
+$$
+B_t =exp(B\times\varepsilon^B_t)
+$$
+
+where $B_t$ is the number of carcasses arriving during time period $t$ , $B$ is the average number of carcasses arriving across all time periods, and $\varepsilon^B_t$ is the random variability in the carcasses arrival process.
+
+In the Lewis River, carcasses can be *born* into any one of five locations (i.e., states). The distribution of births into those locations is governed by a vector of probabilities that sum to one, $\boldsymbol{\mathrm{\pi}}$
+
+$$
+\pi_s = \frac{exp(\beta_s)}{\sum_s exp(\beta_s)}, \forall s<6
+$$
+
+and $B_{t,s=6} = 0$. The number of carcass *births* in location $s$ during time period $t$ is equal to
+
+$$
+B_{t,s} = B_t\times\pi_s
+$$
+
+### Total carcasses abundance
+
+The total number of carcasses in location *s* at time *t* is
+
+$$
+\mathbf{\mathrm{N}}_{t,\bullet} = \mathbf{\mathrm{N}}_{t-1,\bullet}^T\boldsymbol{\Phi}  + \mathbf{\mathrm{B}}_{t,\bullet}^T\boldsymbol{\Phi}
+$$
+
+where $\mathbf{\mathrm{N}}_{t,\bullet}$ is the vector of total carcasses at time $t$ for all $s$ states, and $\boldsymbol{\Phi}$ is the state transition matrix. It is assumed that the transitions between locations, including those carcasses that *die,* occurs right before the survey occurs, $\mathbf{\mathrm{B}}_{t,\bullet}^T\boldsymbol{\Phi}$. If you simply assume that $\mathbf{\mathrm{N}}_{t,\bullet} = \mathbf{\mathrm{N}}_{t-1,\bullet}^T\boldsymbol{\Phi}  + \mathbf{\mathrm{B}}_{t,\bullet}$, you will be ignoring the fact that many of the carcasses that are *born* into the river *die* and are never seen before the next survey begins. This will lead to under estimates of the population size.
+
+### Carcass sampling rate
+
+The carcasses sampling rate is a function of the observed carcasses at time-step *t* in location *s*, $C_{t,s}$, and the predicted total number of carcasses at time-step *t* in location *s,* $\mathrm{N}_{t,s}$,
+
+$$
+C_{t,s} \sim Bin(N_{t,s}; \psi_s)
+$$
+
+where $\psi_s$ is the sampling rate of carcasses in location *s*.
+
+### Carcass detection rate
+
+The carcasses detection rate is a function of the observed tagged/marked carcasses at time-step *t* in location *s*, $M_{t,s}$, and the predicted total number of carcasses at time-step *t* in location *s,* $\mathrm{C}_{t,s}$,
+
+$$ M_{t,s} \sim Poisson(C_{t,s}p_s ) $$
+
+where $p_s$ is the sampling rate of carcasses in location *s*.
+
+### Joint likeihood of movement and detection probability: mark-recapture 
+
+The mark-recapture model considers the joint probability of the survival transition matrix $\Phi$ and the detection probability $\mathbf{p}$.
+
+The mark-recapture model can be an individual-based model, or group according to fish attributes. For the ith fish, there is tagging week $tw_i$, the recapture week $rw_i$, the tagging location $tl_i$ , and the recapture location $rl_i$.
+
+For fish that are recaptured, the joint probability of its detection history is,
+
+$$
+pr_i = \boldsymbol{\mathrm{\delta}}_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i-1)}\Psi \times diag(\mathrm{p}_{:,6})\biggr] \times \Psi \times diag(\mathrm{p}_{:,rl_i}) \times \mathrm{1} 
+$$
+
+where, $\boldsymbol{\delta}_i$ is a $1\times 6$ matrix with a one at column $tl_i$ and zeros elsewhere, $\boldsymbol{\Psi}$ is the 6X6 transition matrix, $diag(\mathrm{p}_{:,6})$ is a matrix with the non-detection probabilities on the diagonal, $diag(\mathrm{p}_{:,rl_i})$ is a matrix with the column of the recapture location along the diagonal, and $\mathrm{1}$ is a vector of ones of length 6. The part in the square brackets is the non-detections.
+
+If a fish is not recaptured, the joint probability this outcome,
+
+$$ pr_i = \delta_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=max(rw_i)}\Psi diag(\mathrm{p}_{:,rl_i=6}) \biggr] \times \mathrm{1}  
+$$
+
+The likelihood is
+
+$$ NLL = -log(pr_i)\times n_i  
+$$
+
+where $n_i$ is the number of carcasses observed. Carcasses in group $i$ can be individuals or a groups of individuals with the same attributes that possess the same survival and detection outcome.
+
+### Random effects
+
+#### Births
+
+Random deivates in the total number of *births* at time step $\varepsilon^B_t$ are normally distribution
+
+$$ \varepsilon^B_t \sim N(0,\sigma_B) $$
+
+where, $\sigma^B$ is the standard deviation of the deviates across all time steps.
+
+#### Detection probability, survival, and tagging rate
+
+All of these processes can include random deviates.
+
+### Data
+
+Reading the data from my local drive. If you have cloned the github, you should not need to change anything.
+
+```{r, message=FALSE, warning=FALSE, echo = FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+d <- read.csv("../data/simpleData2.csv") %>%
+  mutate(t_wk = lubridate::week(lubridate::mdy(TagDate)),
+         r_wk = lubridate::week(lubridate::mdy(RecapDate)),
+         t_yr = lubridate::year(lubridate::mdy(TagDate)),
+         r_yr = lubridate::year(lubridate::mdy(RecapDate))) %>%
+  filter(t_yr == 2024) %>%
+  filter(t_wk > 10) %>%
+  mutate(t_k = t_wk - min(t_wk) + 1,
+         r_k = r_wk - min(t_wk) + 1) %>%
+  mutate(t_l = TagState,
+         r_l = RecapState) %>%
+  filter(is.na(r_wk) | r_k>0) %>%
+  mutate(tag = ifelse(Tag1=="",FALSE,TRUE)) %>%
+  group_by(t_k,r_k,t_l, r_l, tag) %>%
+  summarise(n = n())
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(kableExtra)
+# Print a pretty table with a caption
+kable(head(d), caption = "Summary table of the data for Lewis River carcass tag recovery analysis.") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = TRUE)
+
+```
+
+Once the data are wrangled, we can create the data and parameter list to feed into RTMB.
+
+```{r, warning = FALSE, message=FALSE}
+
+# Load Data
+data <- list(
+  t_k = d$t_k,   # First detection week
+  r_k = d$r_k,   # Recapture week (NA if not recaptured)
+  t_l = d$t_l,   # First detection location
+  r_l = d$r_l,   # Recapture location (NA if not recaptured)
+  tag = as.integer(d$tag) # Whether tagged (1 = tagged, 0 = not)
+)
+
+parameters = list(
+  surv_par = rep(0,15),      # Logit persistence probability
+  detection_par = rep(0,5),        # Logit detection probability
+  taggingRate_par = rep(0,5),      # Logit tagging probability
+  taggingRate_re = matrix(0,5,max(data$t_k)),      # Logit tagging probability
+  par_PopTotal = 1,   # Log expected carcass births
+  B_time_sig = 0,
+  B_loc_sig = 0,
+  taggingRate_sig = 0,
+  B_time = rep(0, max(data$t_k)),  #Carcasses by week
+  B_loc = matrix(0, 5,max(data$t_k))  #Distribution of carcasses by location
+)
+```
+
+### Code
+
+Quarto doesn't allow for RTMB to be run from an embedded code chunk - this isn't a problem with other markdown compilers.
+
+```{r, message=FALSE, warning=FALSE}
+
+source("../R/test_code_MV2.r")
+
+```
+
+## Results
+
+### Fits to the data
+
+#### Total carcasses, $N_{t,s} \times p_{t,s}$
+
+```{r}
+E <- reshape2::melt(sd.est$E_TotalCarcasses_t)
+E$sd <- reshape2::melt(sd.sd$E_TotalCarcasses_t)$value
+E$obs <- reshape2::melt(rep$TotalCarcasses_t)$value
+E %>% filter(Var1 != 6) %>%
+  ggplot(aes(x = Var1, y = obs)) +
+  geom_point() +
+  geom_point(aes(x = Var1, y = value), color = "red", alpha = 0.5) +
+  geom_errorbar(aes(ymin = value - 1.96 * sd, ymax = value + 1.96 * sd), color = "red", alpha = 0.5, width = 0.2) +
+  facet_wrap(~Var2, ncol = 4, scales = "free_y") +
+  xlab("Location") +
+  ylab("Number of total carcasses") +
+  theme_classic()
+
+```
+
+#### Carcass tagging rate, $C_{t,s} \times \psi_{t,s}$ 
+
+```{r}
+E <- reshape2::melt(sd.est$E_TaggedCarcasses_t)
+E$sd <- reshape2::melt(sd.sd$E_TaggedCarcasses_t)$value
+E$obs <- reshape2::melt(rep$TaggedCarcasses_t)$value
+E %>% filter(Var1 != 6) %>%
+  ggplot(aes(x = Var1, y = obs)) +
+  geom_point() +
+  geom_point(aes(x = Var1, y = value), color = "red", alpha = 0.5) +
+  geom_errorbar(aes(ymin = value - 1.96 * sd, ymax = value + 1.96 * sd), color = "red", alpha = 0.5, width = 0.2) +
+  facet_wrap(~Var2, ncol = 4, scales = "free_y") +
+  xlab("Location") +
+  ylab("Number of tagged carcasses") +
+  theme_classic()
+
+```
+
+#### Mark-recapture data $(N_{t,:})^\mathrm{T} \times \Phi \times \mathrm{p}$
+
+These estimates represent the number of recaptured (y-axis) by recapture location (x-axis) based on the tagging location (rows) and tagging time-step (columns)
+
+```{r}
+E <- d %>%
+  group_by(t_k, t_l, tag) %>%
+  mutate(t_k_total = sum(n))  %>%
+  mutate(obs = n)
+# E$p <-  rep$probability_of_outcome
+E$pred <- sd.est$pred2
+E$sd <- sd.sd$pred2
+
+E <- E %>%
+  filter(tag ==TRUE) %>%
+  group_by(t_k,t_l,r_l) %>%
+  summarise(obs = sum(obs),
+            pred = sum(exp(pred)),
+            sd = sum(sd))
+
+E %>%
+  filter(t_k<=5) %>%
+  mutate(r_l = ifelse(is.na(r_l),6,r_l)) %>%
+  ggplot(aes(x = r_l, y = obs)) +
+  geom_point(color = "black", alpha = 0.8) +
+  geom_point(aes(x = r_l, y = (pred)), col = "red", alpha = 0.5) +
+  geom_errorbar(aes(ymin = exp(log(pred) - 1.96 * sd), ymax = exp(log(pred) + 1.96 * sd)), col = "red", alpha = 0.5, width = 0.5) +
+  facet_grid(t_l~t_k) +
+  xlab("Recapture location") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank()   # Remove minor grid lines
+  )
+
+```
+
+```{r}
+E %>%
+  filter(t_k>5 & t_k<=10) %>%
+  mutate(r_l = ifelse(is.na(r_l),6,r_l)) %>%
+  ggplot(aes(x = r_l, y = obs)) +
+  geom_point(color = "black", alpha = 0.8) +
+  geom_point(aes(x = r_l, y = (pred)), col = "red", alpha = 0.5) +
+  geom_errorbar(aes(ymin = exp(log(pred) - 1.96 * sd), ymax = exp(log(pred) + 1.96 * sd)), col = "red", alpha = 0.5, width = 0.5) +
+  facet_grid(t_l~t_k) +
+  xlab("Recapture location") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank()   # Remove minor grid lines
+  )
+
+```
+
+```{r}
+E %>%
+  filter(t_k>11 & t_k<=16) %>%
+  mutate(r_l = ifelse(is.na(r_l),6,r_l)) %>%
+  ggplot(aes(x = r_l, y = obs)) +
+  geom_point(color = "black", alpha = 0.8) +
+  geom_point(aes(x = r_l, y = (pred)), col = "red", alpha = 0.5) +
+  geom_errorbar(aes(ymin = exp(log(pred) - 1.96 * sd), ymax = exp(log(pred) + 1.96 * sd)), col = "red", alpha = 0.5, width = 0.5) +
+  facet_grid(t_l~t_k) +
+  xlab("Recapture location") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank()   # Remove minor grid lines
+  )
+
+```
+
+### Derived variables
+
+#### Total births
+
+```{r}
+
+E <- reshape2::melt(sd.est$B_total)
+E$sd <- reshape2::melt(sd.sd$B_total)$value
+E %>% #filter(Var1 != 6) %>%
+  ggplot(aes(x = Var1, y = exp(value))) +
+  geom_col() +
+  geom_errorbar(aes(ymin = exp(value - 1.96 * sd), ymax = exp(value + 1.96 * sd))) +
+  xlab("Location") +
+  ylab("Total births") +
+  theme_classic()
+
+```
+
+#### Births by day and location
+
+```{r}
+E <- reshape2::melt(sd.est$B_ts)
+E$sd <- reshape2::melt(sd.sd$B_ts)$value
+E %>% #filter(Var1 != 6) %>%
+  ggplot(aes(x = Var1, y = exp(value))) +
+  geom_col() +
+  geom_errorbar(aes(ymin = exp(value - 1.96 * sd), ymax = exp(value + 1.96 * sd))) +
+  facet_wrap(~Var2, ncol = 4, scales = "free_y") +
+  xlab("Location") +
+  ylab("Births") +
+  theme_classic()
+
+```
+
+#### Total carcasses
+
+### Parameters
+
+#### Transition matrix $\Psi$ 
+
+```{r}
+p.mat <- corrplot::cor.mtest(rep$surv)
+M <- rep$surv
+# M[6,6] <- NA
+colnames(M) <- c(paste("NLL", 1:5),"'Death'")
+rownames(M) <- c(paste("NLL", 1:5),"'Death'")
+
+corrplot::corrplot(
+  M, 
+  
+  method = "color",       # or "color", "ellipse", etc.
+  type = "upper",          # upper or lower triangle of correlation matrix
+  addCoef.col = "black",   # color of correlation coefficients
+  tl.col = "black",        # color of text labels (variable names)
+  tl.srt = 45,
+  col.lim = c(0,1)
+  # text label rotation
+)
+
+```
+
+#### Detection matrix $\mathrm{p}$ 
+
+```{r}
+p.mat <- corrplot::cor.mtest(rep$p)
+M <- rep$p
+# M[6,6] <- NA
+colnames(M) <- c(paste("NLL", 1:5),"'Death'")
+rownames(M) <- c(paste("NLL", 1:5),"'Death'")
+
+corrplot::corrplot(
+  M, 
+  
+  method = "color",       # or "color", "ellipse", etc.
+  type = "upper",          # upper or lower triangle of correlation matrix
+  addCoef.col = "black",   # color of correlation coefficients
+  tl.col = "black",        # color of text labels (variable names)
+  tl.srt = 45,
+  col.lim = c(0,1)
+  # text label rotation
+)
+
+```

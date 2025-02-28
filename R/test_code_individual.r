@@ -66,7 +66,7 @@ rtmb_model <- function(parms){
     nll_birth <- rep(0, length(unique(t_k)))
     nll_detect <- rep(0, length(unique(t_k)))
     nll_tag <- rep(0, length(unique(t_k)))
-    nll_recapture <- matrix(0, length(unique(t_k)),length(unique(t_k)))
+    nll_recapture <- rep(0, length(unique(t_k)))
 
 
     # Derived variables
@@ -74,11 +74,8 @@ rtmb_model <- function(parms){
     C_t <- rep(0,max(t_k))      # Total carcasses present at time t
     T_t <- rep(0,max(t_k))      # Fish tagged at time t
     T_available <- rep(0,max(t_k))  # Tagged carcasses over time
-    E_R <- matrix(0,max(t_k),max(t_k))  # Tagged carcasses over time
-    E_Rp <- matrix(0,max(t_k),max(t_k))  # Tagged carcasses over time
-    R_t <- matrix(0,max(t_k),max(t_k))  # Tagged carcasses over time
-    tmp_Rt <- rep(0, max(t_k))
-    E_R_tmp <- rep(0, max(t_k))
+    E_R <- matrix(0,max(t_k),max(t_k))  # Expected recaptures
+    R_t <- matrix(0,max(t_k),max(t_k))  # Observed recaptures
 
     # Initialize first time step
     N[1] <- exp(B[1] + par_lambda)
@@ -98,7 +95,6 @@ rtmb_model <- function(parms){
     nll_birth <- RTMB::dnorm(B, 0, exp(B_sig), log = TRUE)
 
     for (t in unique(t_k)) {
-      # Birth Process (Poisson likelihood)
 
       # Detection Process (Binomial likelihood)
       C_t[t] <- sum(n[t_k == t])  # Total detected carcasses at time t
@@ -111,17 +107,22 @@ rtmb_model <- function(parms){
 
 
       # Recapture Process (Poissson )
-      if (t > 1 & t<16) {
+      if (t > 1 & t< 16) {
         for (r in (t + 1):max(t_k)) {  # Future time steps
-          # print(paste(t,r))
+
           E_R[t, r] <- T_available[t] * plogis(phi_par)^(r - t)
           R_t[t,r] <- sum(na.omit(n[r_k == r & t_k == t & tag == 1]))  # Recaptured tagged carcasses
           # Likelihood for observed recaptures
-          nll_recapture[t,r] <- RTMB::dpois(R_t[t,r], E_R[t, r] * plogis(p_par), log = TRUE)
+          if(R_t[t,r]>0){
+            nll_recapture[t] <- nll_recapture[t] +  RTMB::dpois(R_t[t,r], E_R[t, r]  * plogis(p_par), log = TRUE)
+          }
 
         }
-        tmp <- sum((n[is.na(r_k) & t_k == t & tag == 1]))  # Recaptured tagged carcasses
-        nll_recapture[t,16] <-  nll_recapture[t,16] + RTMB::dpois(tmp, T_t[t] * (1-plogis(phi_par)^(16 - t))*(1 - plogis(p_par)), log = TRUE)
+
+        # # #All the fish that were never observed
+        # tmp_Rt[t] <- sum(na.omit(n[is.na(r_k) & t_k == t & tag == 1]))
+        # E_R_tmp[t] <- T_available[t] * prod(1-plogis(phi_par)^(t:16 - (t-1)) * plogis(p_par))
+        # nll_recapture[t] <- nll_recapture[t] + RTMB::dpois(tmp_Rt[t], E_R_tmp[t], log = TRUE)
       }
     }
 
@@ -176,12 +177,6 @@ E %>% ggplot(aes(x = Var1, y = obs)) +
   geom_line(aes(x = Var1, y = value)) +
   facet_wrap(~Var2, ncol = 4) +
   theme_classic()
-
-# data.frame(obs = rep$tmp_Rt, pred = rep$E_R_tmp) %>%
-#   ggplot(aes(x = 1:length(obs), y = obs)) +
-#   geom_point() +
-#   geom_line(aes(x = 1:length(obs), y = pred)) +
-#   theme_classic()
 
 
 # plot(rep$N)
