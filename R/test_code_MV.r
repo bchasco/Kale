@@ -47,7 +47,7 @@ data <- list(
 )
 
 parameters = list(
-  surv_par = rep(0,15),      # Logit persistence probability
+  surv_par = rep(-3,15),      # Logit persistence probability
   detection_par = rep(0,5),        # Logit detection probability
   taggingRate_par = rep(0,5),      # Logit tagging probability
   taggingRate_re = matrix(0,5,max(data$t_k)),      # Logit tagging probability
@@ -73,17 +73,41 @@ rtmb_model <- function(parms){
     surv <- matrix(0,6,6)
     detection <- matrix(0,6,6)
     ii <- 1
+    # for(i in 1:5){
+    #   for(j in i:5){
+    #     # if(j==i)
+    #     surv[i,j] <- exp(surv_par[ii])
+    #     ii <- ii + 1
+    #   }
+    #   surv[,6] <- 1
+    # }
+    # for(i in 1:5){
+    #   surv[i,] <- surv[i,]/sum(surv[i,])
+    # }
+
     for(i in 1:5){
       for(j in i:5){
         # if(j==i)
-        surv[i,j] <- exp(surv_par[ii])
+        if(i==j){
+          surv[i,j] <- -exp(surv_par[ii])
+        }else{
+          surv[i,j] <- exp(surv_par[ii])
+        }
         ii <- ii + 1
+        if((i+1)<5){
+          surv[i,i] <- surv[i,i] - sum(surv[i,(i+1):5])
+        }
+        if((i+1)<=5){
+          surv[i,6] <- -sum(surv[i,i:5])
+        }else{
+          surv[i,6] <- -sum(surv[i,5])
+        }
       }
-      surv[,6] <- 1
-    }
-    for(i in 1:5){
-      surv[i,] <- surv[i,]/sum(surv[i,])
-    }
+    }    # for(i in 1:5){
+
+    surv <- Matrix::expm(surv)
+
+    print(surv)
     # Compute probability matrix
     p <- matrix(0,6,6)
     diag(p) <- c(plogis(detection_par),0)
@@ -108,16 +132,20 @@ rtmb_model <- function(parms){
 
     # Loop through time steps to compute derived variables
     for (t in 2:max(t_k)) {
+      print(t)
       B_loc_dist[,t] <- exp(c(B_loc[,t],0))/sum(exp(c(B_loc[,t],0)))
 
+      print(B_loc_dist[,t])
+      print(t(N[,t-1]) %*% surv)
+      print("test")
+      print(t(exp(B_time[t] + par_PopTotal) * B_loc_dist[,t]))# %*% surv)
+      print(surv)
+      print(surv %*% (exp(B_time[t] + par_PopTotal) * B_loc_dist[,t]) )
+      print(surv  %*% (exp(B_time[t] + par_PopTotal) * B_loc_dist[,t] + (N[,t-1])))
+      print(N[,t])
       # Total carcasses at time t (new + survivors)
-      N[,t] = t(exp(B_time[t] + par_PopTotal) * B_loc_dist[,t]) %*% surv + t(N[,t-1]) %*% surv;
+      N[,t] = (surv  %*% (exp(B_time[t] + par_PopTotal) * B_loc_dist[,t] + (N[,t-1])))[,1]
 
-      # Tagged carcasses at time t (new tags + surviving tags)
-      for(loc in 1:5){
-        T_available[loc, t] <- sum(n[t_k == t & t_l == loc & tag == 1]);
-      }
-      T_available[,t] <- T_available[,t] + t(T_available[,t-1]) %*% surv;
     }
 
     B <- exp(B_time + par_PopTotal)

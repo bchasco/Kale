@@ -140,25 +140,52 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h3 class="anchored" data-anchor-id="births">Births</h3>
 <p>The number of carcasses births in each time period <span class="math inline">\(t\)</span> is equal to,</p>
 <p><span class="math display">\[
-B_t =exp(B\times\varepsilon^B_t)
+\mathrm{b}_t =exp(\mu_B \times\varepsilon^\mathrm{b}_t)
 \]</span></p>
-<p>where <span class="math inline">\(B_t\)</span> is the number of carcasses arriving during time period <span class="math inline">\(t\)</span> , <span class="math inline">\(B\)</span> is the average number of carcasses arriving across all time periods, and <span class="math inline">\(\varepsilon^B_t\)</span> is the random variability in the carcasses arrival process.</p>
+<p>where <span class="math inline">\(\mathrm{b}_t\)</span> is the number of carcasses arriving during time period <span class="math inline">\(t\)</span> , <span class="math inline">\(\mu_B\)</span> is the average number of carcasses arriving across all time periods, and <span class="math inline">\(\varepsilon^B_t\)</span> is the random variability in the carcasses arrival process.</p>
 <p>In the Lewis River, carcasses can be <em>born</em> into any one of five locations (i.e., states). The distribution of births into those locations is governed by a vector of probabilities that sum to one, <span class="math inline">\(\boldsymbol{\mathrm{\pi}}\)</span></p>
 <p><span class="math display">\[
 \pi_s = \frac{exp(\beta_s)}{\sum_s exp(\beta_s)}, \forall s&lt;6
 \]</span></p>
-<p>and <span class="math inline">\(B_{t,s=6} = 0\)</span>. The number of carcass <em>births</em> in location <span class="math inline">\(s\)</span> during time period <span class="math inline">\(t\)</span> is equal to</p>
+<p>where the parameter <span class="math inline">\(\beta_{s=5}\)</span> is fixed to zero, and <span class="math inline">\(\pi_6\)</span> is equal to zero. The number of carcass <em>births</em> in state/location <span class="math inline">\(s\)</span> during time period <span class="math inline">\(t\)</span> is equal to</p>
 <p><span class="math display">\[
-B_{t,s} = B_t\times\pi_s
+B_{t,s} = \mathrm{b}_t\times\pi_s
 \]</span></p>
 </section>
-<section id="total-carcasses-abundance" class="level3">
-<h3 class="anchored" data-anchor-id="total-carcasses-abundance">Total carcasses abundance</h3>
+<section id="carcass-abundance" class="level3">
+<h3 class="anchored" data-anchor-id="carcass-abundance">Carcass abundance</h3>
 <p>The total number of carcasses in location <em>s</em> at time <em>t</em> is</p>
 <p><span class="math display">\[
-\mathbf{\mathrm{N}}_{t,\bullet} = \mathbf{\mathrm{N}}_{t-1,\bullet}^T\boldsymbol{\Phi}  + \mathbf{\mathrm{B}}_{t,\bullet}^T\boldsymbol{\Phi}
+\mathbf{\mathrm{N}}_{t,\bullet} = \boldsymbol{\Phi}_{\Delta t}^\mathrm{T}\bigr(\mathbf{\mathrm{N}}_{t-\Delta t,\bullet}  + \mathbf{\mathrm{B}}_{t,\bullet}\bigr)
 \]</span></p>
-<p>where <span class="math inline">\(\mathbf{\mathrm{N}}_{t,\bullet}\)</span> is the vector of total carcasses at time <span class="math inline">\(t\)</span> for all <span class="math inline">\(s\)</span> states, and <span class="math inline">\(\boldsymbol{\Phi}\)</span> is the state transition matrix. It is assumed that the transitions between locations, including those carcasses that <em>die,</em> occurs right before the survey occurs, <span class="math inline">\(\mathbf{\mathrm{B}}_{t,\bullet}^T\boldsymbol{\Phi}\)</span>. If you simply assume that <span class="math inline">\(\mathbf{\mathrm{N}}_{t,\bullet} = \mathbf{\mathrm{N}}_{t-1,\bullet}^T\boldsymbol{\Phi} + \mathbf{\mathrm{B}}_{t,\bullet}\)</span>, you will be ignoring the fact that many of the carcasses that are <em>born</em> into the river <em>die</em> and are never seen before the next survey begins. This will lead to under estimates of the population size.</p>
+<p>where <span class="math inline">\(\mathbf{\mathrm{N}}_{t,\bullet}\)</span> is the vector of total carcasses at time <span class="math inline">\(t\)</span> for all <span class="math inline">\(s\)</span> states, <span class="math inline">\(\boldsymbol{\Phi}_{\Delta t}^\mathrm{T}\)</span> is the transpose of state transition probability matrix, and <span class="math inline">\(\Delta t\)</span> is the time between the current time-step and the previous time step. The transposition, <span class="math inline">\(\mathrm{T}\)</span> of the state transition matrix is necessary because the population model assumes the initial states are represented by rows, whereas the mark-recapture process assumes that initial states are represent by columns. The population in the previous time-step is <span class="math inline">\(\mathbf{N}_{t-\Delta t,\bullet}\)</span>. The vector of of births time-step <em>t</em> ( <span class="math inline">\(\mathrm{B}_{t,\bullet}\)</span> ) is multiplied by the state transition probability matrix, because some of the births would be expected to have transitioned to the <em>death</em> state before they were surveyed at time <em>t.</em> Failure to include would result in a model that assume the only non-detect births were do to detection efficiency and not the fact that some carcasses are simply will never be recaptured.</p>
+<p>The initial condition for the abundance process is simply the <em>births,</em></p>
+<p><span class="math display">\[
+\mathbf{\mathrm{N}}_{1,\bullet} = \boldsymbol{\Phi}_{\Delta t}^\mathrm{T} \mathrm{B}_{1,\Delta t,\bullet}
+\]</span></p>
+<p>where, <span class="math inline">\(\Delta t\)</span> is the would be equal to the time period between the initial survey and the when the first carcass is likely to have show up on the spawning grounds.</p>
+</section>
+<section id="state-transition-probability-matrix-phi_delta-t" class="level3">
+<h3 class="anchored" data-anchor-id="state-transition-probability-matrix-phi_delta-t">State transition <em>probability</em> matrix, <span class="math inline">\(\Phi_{\Delta t}\)</span></h3>
+<p>The state transition probability matrix describes the probability of a carcass remaining in its tagging location, transitioning and being recapture to another location, or never being recaptured again. The probability matrix <span class="math inline">\(\Phi_{\Delta t}\)</span> is derived from the transition <em>rate</em> matrix <span class="math inline">\(\mathrm{Q}\)</span> and the difference in time <span class="math inline">\(\Delta t\)</span> between surveys.</p>
+<p>If there are <span class="math inline">\(ns\)</span> locations, then the dimension of the transition matrix is <span class="math inline">\(ns \times ns\)</span>.</p>
+<p><span class="math display">\[
+\mathrm{Q} =
+\begin{bmatrix}
+-\sum_{j\neq1}q_{1j} &amp; q_{12} &amp; \cdots &amp; q_{1n} \\
+q_{2j} &amp; -\sum_{j\neq2}q_{2j} &amp; \cdots &amp; q_{2n} \\
+\vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+0 &amp; 0 &amp; \cdots &amp; 0
+\end{bmatrix}
+\]</span></p>
+<p>The off-diagonal values describe the <em>instantaneous</em> <em>rate</em> (i.e., ratio per unit time) that individual transitions from one state to another. For instance, <span class="math inline">\(q_{12}\)</span> describes the transition rate from state 1 to state 2 per unit time, <span class="math inline">\(q_{21}\)</span> describes the transition rate from state 2 to state 1. Because the transition rate is a Markov process, the rows must sum to 0; thus, the diagonal elements (i.e., the rate at which an individual remains in a state) is <span class="math inline">\(-\sum_{j\forall j\neq i}q_{i,j}\)</span> . The last row of the matrix is called the absorbing state – the probability of transitioning from <em>death</em> to one of the other states – which is zero. The parameters of the transition rate matrix <span class="math inline">\(q_{\bullet,\bullet}\)</span> are the parameters of the model to be estimated. These parameters do not need to be fixed. They can be genrelized as a function of the intrinsic attributes of the carcass (e.g., size or sex) or extrinsic attributes of the environment (e.g., distance between locations or flow during the survey period), where the coefficients of the transition are estimated.</p>
+<p>The parameters of state transition probability matrix are derived from the exponent of the transition rate matrix <span class="math inline">\(\mathrm{Q}\)</span>.</p>
+<p><span class="math display">\[
+\Phi_{\Delta t} = e^{\mathrm{Q}\times \Delta t} =  \begin{bmatrix} \phi_{1j} &amp; \phi_{12} &amp; \cdots &amp; \phi_{1n} \\ \phi_{2j} &amp; \phi_{2j} &amp; \cdots &amp; \phi_{2n} \\ \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\ 0 &amp; 0 &amp; \cdots &amp; 1 \end{bmatrix}
+\]</span></p>
+<p>where, <span class="math inline">\(e\)</span> is the matrix exponent. Exponentiation of the rate matrix results in a transition matrix where the sum of the rows are now one rather than zero. Most statistical software packages have a matrix exponent function (e.g., Matrix::expm is the matrix exponential function R).</p>
+<p>Lastly, the transition probability matrix fully accounts for the entire carcass sampling design. In particular, the recovery of a carcass results in a change of state, because the tail of the carcass is removed and it is considered to have transitioned to the <em>dead</em>. The transition time between a carcass being <em>alive</em> and <em>dead</em> is nearly instantaneous <span class="math inline">\(\Delta t \rightarrow 0\)</span>, which means the transition probability matrix approaches the identity matrix. The importance of this is explained in the mark-recapture likelihood.</p>
+<p><span class="math display">\[ lim_{\Delta t \rightarrow 0}\Phi_{\Delta t} = e^{\mathrm{Q}\times \Delta t} =  \begin{bmatrix} 1 &amp; 0 &amp; \cdots &amp; 0 \\ 0 &amp; 1 &amp; \cdots &amp; 0 \\ \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\ 0 &amp; 0 &amp; \cdots &amp; 1 \end{bmatrix} = \mathrm{I}_{ns}\]</span></p>
 </section>
 <section id="carcass-sampling-rate" class="level3">
 <h3 class="anchored" data-anchor-id="carcass-sampling-rate">Carcass sampling rate</h3>
@@ -166,30 +193,38 @@ B_{t,s} = B_t\times\pi_s
 <p><span class="math display">\[
 C_{t,s} \sim Bin(N_{t,s}; \psi_s)
 \]</span></p>
-<p>where <span class="math inline">\(\psi_s\)</span> is the sampling rate of carcasses in location <em>s</em>.</p>
+<p>where <span class="math inline">\(\psi_s\)</span> is the sampling rate of carcasses in location <em>s</em>. Similar the transition rate parameters, the sampling rate parameters can be generalized to include fixed and random effects associated with intrinsic and extrinsic characteristics and random levels of variability.</p>
 </section>
 <section id="carcass-detection-rate" class="level3">
 <h3 class="anchored" data-anchor-id="carcass-detection-rate">Carcass detection rate</h3>
 <p>The carcasses detection rate is a function of the observed tagged/marked carcasses at time-step <em>t</em> in location <em>s</em>, <span class="math inline">\(M_{t,s}\)</span>, and the predicted total number of carcasses at time-step <em>t</em> in location <em>s,</em> <span class="math inline">\(\mathrm{C}_{t,s}\)</span>,</p>
 <p><span class="math display">\[ M_{t,s} \sim Poisson(C_{t,s}p_s ) \]</span></p>
-<p>where <span class="math inline">\(p_s\)</span> is the sampling rate of carcasses in location <em>s</em>.</p>
+<p>where <span class="math inline">\(p_s\)</span> is the sampling rate of carcasses in location <em>s,</em> which may also be generalized fixed and random effects related with intrinsic and extrinsic characteristics and random levels of variability.</p>
 </section>
-<section id="joint-likeihood-of-movement-and-detection-probability-mark-recapture" class="level3">
-<h3 class="anchored" data-anchor-id="joint-likeihood-of-movement-and-detection-probability-mark-recapture">Joint likeihood of movement and detection probability: mark-recapture</h3>
+<section id="mark-recapture-model" class="level3">
+<h3 class="anchored" data-anchor-id="mark-recapture-model">Mark-recapture model</h3>
 <p>The mark-recapture model considers the joint probability of the survival transition matrix <span class="math inline">\(\Phi\)</span> and the detection probability <span class="math inline">\(\mathbf{p}\)</span>.</p>
-<p>The mark-recapture model can be an individual-based model, or group according to fish attributes. For the ith fish, there is tagging week <span class="math inline">\(tw_i\)</span>, the recapture week <span class="math inline">\(rw_i\)</span>, the tagging location <span class="math inline">\(tl_i\)</span> , and the recapture location <span class="math inline">\(rl_i\)</span>.</p>
-<p>For fish that are recaptured, the joint probability of its detection history is,</p>
+<p>The mark-recapture model can be an individual-based model, or group according to fish attributes. For the <span class="math inline">\(i^{th}\)</span> carcass, there is the tagging week <span class="math inline">\(tw_i\)</span>, the recapture week <span class="math inline">\(rw_i\)</span>, the tagging location <span class="math inline">\(tl_i\)</span> , and the recapture location <span class="math inline">\(rl_i\)</span>.</p>
+<p>For caracsses that are recaptured, the joint probability of its detection history is,</p>
 <p><span class="math display">\[
-pr_i = \boldsymbol{\mathrm{\delta}}_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i-1)}\Psi \times diag(\mathrm{p}_{:,6})\biggr] \times \Psi \times diag(\mathrm{p}_{:,rl_i}) \times \mathrm{1}
+pr_i = \boldsymbol{\mathrm{\delta}}_{i,j} \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i-1)}\Phi_{\Delta t_{i,j}} \times diag(\mathrm{p}_{:,6})\biggr] \times \Phi_{\Delta t_{i,j}} \times diag(\mathrm{p}_{:,rl_i}) \times \mathrm{I}_{ns} \times \mathrm{1}
 \]</span></p>
-<p>where, <span class="math inline">\(\boldsymbol{\delta}_i\)</span> is a <span class="math inline">\(1\times 6\)</span> matrix with a one at column <span class="math inline">\(tl_i\)</span> and zeros elsewhere, <span class="math inline">\(\boldsymbol{\Psi}\)</span> is the 6X6 transition matrix, <span class="math inline">\(diag(\mathrm{p}_{:,6})\)</span> is a matrix with the non-detection probabilities on the diagonal, <span class="math inline">\(diag(\mathrm{p}_{:,rl_i})\)</span> is a matrix with the column of the recapture location along the diagonal, and <span class="math inline">\(\mathrm{1}\)</span> is a vector of ones of length 6. The part in the square brackets is the non-detections.</p>
-<p>If a fish is not recaptured, the joint probability this outcome,</p>
-<p><span class="math display">\[ pr_i = \delta_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=max(rw_i)}\Psi diag(\mathrm{p}_{:,rl_i=6}) \biggr] \times \mathrm{1}  
+<p>where, <span class="math inline">\(\boldsymbol{\delta}_i\)</span> is a <span class="math inline">\(1\times 6\)</span> matrix with a one at column <span class="math inline">\(tl_i\)</span> and zeros elsewhere, <span class="math inline">\(\boldsymbol{\Phi}_{\Delta t_{i,j}}\)</span> is the 6X6 transition probability matrix related to the time between <span class="math inline">\(j^{th}\)</span> and <span class="math inline">\(j^{th}-1\)</span> survey for the <span class="math inline">\(i^{th}\)</span> carcass ( <span class="math inline">\(\Delta_{t_{i,j}}\)</span> ), <span class="math inline">\(diag(\mathrm{p}_{:,6})\)</span> is a matrix with the non-detection probabilities on the diagonal, <span class="math inline">\(diag(\mathrm{p}_{:,rl_i})\)</span> is a matrix with the column of the recapture location along the diagonal, and <span class="math inline">\(\mathrm{1}\)</span> is a vector of ones of length 6. The part in the square brackets is the nondetections.</p>
+<p>While the matrix, <span class="math inline">\(\mathrm{I}_{ns}\)</span> , has no effect on the likelihood, it is important to understand why this model provides a complete accounting of the survey design. The first observation after the recapture of the <span class="math inline">\(i^{th}\)</span> carcass is uniquely different than the non-detection and recapture detection preceding it. First, for a <em>dead</em> carcass that is removed from the survey in any location, the detection probability of a <em>live</em> carcass is 0 and the detection probability for the <em>dead</em> carcass is.</p>
+<p><span class="math display">\[
+\mathrm{p} = \begin{bmatrix} 0 &amp; 0 &amp; \dots &amp; 1\\  0 &amp; 0 &amp; \dots &amp; 1 \\ \vdots &amp; \vdots &amp; \vdots &amp; \vdots \\ 0 &amp; 0 &amp; \dots &amp; 1 \end{bmatrix}
 \]</span></p>
-<p>The likelihood is</p>
-<p><span class="math display">\[ NLL = -log(pr_i)\times n_i  
+<p>Second, as previously described in the transition probability matrix, because the transition from <em>live</em> to <em>dead</em> is instantaneous, the transition matrix is,</p>
+<p><span class="math display">\[
+\Phi_{\Delta t \rightarrow 0} = \mathrm{I}
 \]</span></p>
-<p>where <span class="math inline">\(n_i\)</span> is the number of carcasses observed. Carcasses in group <span class="math inline">\(i\)</span> can be individuals or a groups of individuals with the same attributes that possess the same survival and detection outcome.</p>
+<p>Therefore, the probability of the carcass transitioning to the dead state is</p>
+<p><span class="math display">\[
+\mathrm{I}_{ns} = \mathrm{I} \times diag(\mathrm{p}_{:,ns})
+\]</span></p>
+<p>The joint likelihood of the observed number of outcomes for the <span class="math inline">\(i^{th}\)</span> detection histories, given the predicted probability of that outcomes, <span class="math inline">\(pr_i\)</span> , is</p>
+<p><span class="math display">\[ NLL = -\sum_i(n_i\times log(pr_i))   
+\]</span></p>
 </section>
 <section id="random-effects" class="level3">
 <h3 class="anchored" data-anchor-id="random-effects">Random effects</h3>
@@ -385,7 +420,7 @@ pr_i = \boldsymbol{\mathrm{\delta}}_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> r_l, <span class="at">y =</span> (pred)), <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> <span class="fu">exp</span>(<span class="fu">log</span>(pred) <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> sd), <span class="at">ymax =</span> <span class="fu">exp</span>(<span class="fu">log</span>(pred) <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> sd)), <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">width =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(t_l<span class="sc">~</span>t_k) <span class="sc">+</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(t_l<span class="sc">~</span>t_k, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Recapture location"</span>) <span class="sc">+</span></span>
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
@@ -404,8 +439,8 @@ pr_i = \boldsymbol{\mathrm{\delta}}_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> r_l, <span class="at">y =</span> (pred)), <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
 <span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> <span class="fu">exp</span>(<span class="fu">log</span>(pred) <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> sd), <span class="at">ymax =</span> <span class="fu">exp</span>(<span class="fu">log</span>(pred) <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> sd)), <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">width =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(t_l<span class="sc">~</span>t_k) <span class="sc">+</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Recapture location"</span>) <span class="sc">+</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="fu">facet_grid</span>(t_l<span class="sc">~</span>t_k, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlab</span>(<span class="st">"Recapture location"</span>) <span class="sc">+</span></span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
 <span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
 <span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.major =</span> <span class="fu">element_blank</span>(),  <span class="co"># Remove major grid lines</span></span>
@@ -423,8 +458,8 @@ pr_i = \boldsymbol{\mathrm{\delta}}_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> r_l, <span class="at">y =</span> (pred)), <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> <span class="fu">exp</span>(<span class="fu">log</span>(pred) <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> sd), <span class="at">ymax =</span> <span class="fu">exp</span>(<span class="fu">log</span>(pred) <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> sd)), <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">width =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(t_l<span class="sc">~</span>t_k) <span class="sc">+</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Recapture location"</span>) <span class="sc">+</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">facet_grid</span>(t_l<span class="sc">~</span>t_k, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlab</span>(<span class="st">"Recapture location"</span>) <span class="sc">+</span></span>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.major =</span> <span class="fu">element_blank</span>(),  <span class="co"># Remove major grid lines</span></span>
@@ -443,31 +478,36 @@ pr_i = \boldsymbol{\mathrm{\delta}}_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>E <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(sd.est<span class="sc">$</span>B_total)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>E<span class="sc">$</span>sd <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(sd.sd<span class="sc">$</span>B_total)<span class="sc">$</span>value</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>E <span class="sc">%&gt;%</span> <span class="co">#filter(Var1 != 6) %&gt;%</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Var1, <span class="at">y =</span> <span class="fu">exp</span>(value))) <span class="sc">+</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>() <span class="sc">+</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> <span class="fu">exp</span>(value <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> sd), <span class="at">ymax =</span> <span class="fu">exp</span>(value <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> sd))) <span class="sc">+</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Location"</span>) <span class="sc">+</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Total births"</span>) <span class="sc">+</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">1000</span>,sd.est<span class="sc">$</span>B_total,sd.sd<span class="sc">$</span>B_total)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(<span class="fu">exp</span>(x),</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">""</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">ylab =</span> <span class="st">""</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Total births"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="KaleDoc_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
 </div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#E %&gt;% #filter(Var1 != 6) %&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#  ggplot(aes(x = Var1, y = exp(value))) +</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#  geom_col() +</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#  geom_errorbar(aes(ymin = exp(value - 1.96 * sd), ymax = exp(value + 1.96 * sd))) +</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#  xlab("Location") +</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">#  ylab("Total births") +</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co">#  theme_classic()</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="births-by-day-and-location" class="level4">
 <h4 class="anchored" data-anchor-id="births-by-day-and-location">Births by day and location</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>E <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(sd.est<span class="sc">$</span>B_ts)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>E<span class="sc">$</span>sd <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(sd.sd<span class="sc">$</span>B_ts)<span class="sc">$</span>value</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>E <span class="sc">%&gt;%</span> <span class="co">#filter(Var1 != 6) %&gt;%</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Var1, <span class="at">y =</span> <span class="fu">exp</span>(value))) <span class="sc">+</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>() <span class="sc">+</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> <span class="fu">exp</span>(value <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> sd), <span class="at">ymax =</span> <span class="fu">exp</span>(value <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> sd))) <span class="sc">+</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Var2, <span class="at">ncol =</span> <span class="dv">4</span>, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Location"</span>) <span class="sc">+</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Births"</span>) <span class="sc">+</span></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>E <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(sd.est<span class="sc">$</span>B_ts)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>E<span class="sc">$</span>sd <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(sd.sd<span class="sc">$</span>B_ts)<span class="sc">$</span>value</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>E <span class="sc">%&gt;%</span> <span class="co">#filter(Var1 != 6) %&gt;%</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Var1, <span class="at">y =</span> <span class="fu">exp</span>(value))) <span class="sc">+</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>() <span class="sc">+</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> <span class="fu">exp</span>(value <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> sd), <span class="at">ymax =</span> <span class="fu">exp</span>(value <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> sd))) <span class="sc">+</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Var2, <span class="at">ncol =</span> <span class="dv">4</span>, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Location"</span>) <span class="sc">+</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Births"</span>) <span class="sc">+</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="KaleDoc_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="672"></p>
 </div>
@@ -482,33 +522,8 @@ pr_i = \boldsymbol{\mathrm{\delta}}_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i
 <section id="transition-matrix-psi" class="level4">
 <h4 class="anchored" data-anchor-id="transition-matrix-psi">Transition matrix <span class="math inline">\(\Psi\)</span></h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>p.mat <span class="ot">&lt;-</span> corrplot<span class="sc">::</span><span class="fu">cor.mtest</span>(rep<span class="sc">$</span>surv)</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>M <span class="ot">&lt;-</span> rep<span class="sc">$</span>surv</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># M[6,6] &lt;- NA</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(M) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"NLL"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>),<span class="st">"'Death'"</span>)</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(M) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"NLL"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>),<span class="st">"'Death'"</span>)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>corrplot<span class="sc">::</span><span class="fu">corrplot</span>(</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  M, </span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"color"</span>,       <span class="co"># or "color", "ellipse", etc.</span></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"upper"</span>,          <span class="co"># upper or lower triangle of correlation matrix</span></span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">addCoef.col =</span> <span class="st">"black"</span>,   <span class="co"># color of correlation coefficients</span></span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.col =</span> <span class="st">"black"</span>,        <span class="co"># color of text labels (variable names)</span></span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.srt =</span> <span class="dv">45</span>,</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">col.lim =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>)</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># text label rotation</span></span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<p><img src="KaleDoc_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
-</div>
-</div>
-</section>
-<section id="detection-matrix-mathrmp" class="level4">
-<h4 class="anchored" data-anchor-id="detection-matrix-mathrmp">Detection matrix <span class="math inline">\(\mathrm{p}\)</span></h4>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>p.mat <span class="ot">&lt;-</span> corrplot<span class="sc">::</span><span class="fu">cor.mtest</span>(rep<span class="sc">$</span>p)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>M <span class="ot">&lt;-</span> rep<span class="sc">$</span>p</span>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>p.mat <span class="ot">&lt;-</span> corrplot<span class="sc">::</span><span class="fu">cor.mtest</span>(rep<span class="sc">$</span>surv)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>M <span class="ot">&lt;-</span> rep<span class="sc">$</span>surv</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># M[6,6] &lt;- NA</span></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(M) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"NLL"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>),<span class="st">"'Death'"</span>)</span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(M) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"NLL"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>),<span class="st">"'Death'"</span>)</span>
@@ -525,7 +540,50 @@ pr_i = \boldsymbol{\mathrm{\delta}}_i \times \biggr[ \prod_{j=(tw_i+1)}^{j=(rw_i
 <span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># text label rotation</span></span>
 <span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
+<p><img src="KaleDoc_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="detection-matrix-mathrmp" class="level4">
+<h4 class="anchored" data-anchor-id="detection-matrix-mathrmp">Detection matrix <span class="math inline">\(\mathrm{p}\)</span></h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>p.mat <span class="ot">&lt;-</span> corrplot<span class="sc">::</span><span class="fu">cor.mtest</span>(rep<span class="sc">$</span>p)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>M <span class="ot">&lt;-</span> rep<span class="sc">$</span>p</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># M[6,6] &lt;- NA</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(M) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"NLL"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>),<span class="st">"'Non-detect'"</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(M) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"NLL"</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>),<span class="st">"'Non-detect'"</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>corrplot<span class="sc">::</span><span class="fu">corrplot</span>(</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  M, </span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"color"</span>,       <span class="co"># or "color", "ellipse", etc.</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"upper"</span>,          <span class="co"># upper or lower triangle of correlation matrix</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">addCoef.col =</span> <span class="st">"black"</span>,   <span class="co"># color of correlation coefficients</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.col =</span> <span class="st">"black"</span>,        <span class="co"># color of text labels (variable names)</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.srt =</span> <span class="dv">45</span>,</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">col.lim =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>)</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># text label rotation</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
 <p><img src="KaleDoc_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="tagging-rate" class="level4">
+<h4 class="anchored" data-anchor-id="tagging-rate">Tagging rate</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>E <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(sd.est<span class="sc">$</span>taggingRate)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>E<span class="sc">$</span>sd <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(sd.sd<span class="sc">$</span>taggingRate)<span class="sc">$</span>value</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>E <span class="sc">%&gt;%</span> <span class="co">#filter(Var1 != 6) %&gt;%</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Var2, <span class="at">y =</span> (value))) <span class="sc">+</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> (value <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> sd), <span class="at">ymax =</span> (value <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> sd))) <span class="sc">+</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>Var1, <span class="at">ncol =</span> <span class="dv">2</span>, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Location"</span>) <span class="sc">+</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Tagging rate"</span>) <span class="sc">+</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="KaleDoc_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 </section>

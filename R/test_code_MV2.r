@@ -6,7 +6,7 @@ d <- read.csv("../data/simpleData2.csv") %>%
          r_wk = lubridate::week(lubridate::mdy(RecapDate)),
          t_yr = lubridate::year(lubridate::mdy(TagDate)),
          r_yr = lubridate::year(lubridate::mdy(RecapDate))) %>%
-  filter(t_yr == 2024) %>%
+  filter(t_yr == 2022) %>%
   filter(t_wk > 10) %>%
   mutate(t_k = t_wk - min(t_wk) + 1,
          r_k = r_wk - min(t_wk) + 1) %>%
@@ -30,7 +30,7 @@ data <- list(
   )
 
 parameters = list(
-  surv_par = rep(0,15),      # Logit persistence probability
+  surv_par = rep(-2,15),      # Logit persistence probability
   detection_par = rep(0,5),        # Logit detection probability
   taggingRate_par = rep(0,5),      # Logit tagging probability
   taggingRate_re = matrix(0,5,max(data$t_k)),      # Logit tagging probability
@@ -55,18 +55,18 @@ rtmb_model <- function(parms){
     #Survival
     surv <- matrix(0,6,6)
     detection <- matrix(0,6,6)
+    #Survival
     ii <- 1
     for(i in 1:5){
-      for(j in i:5){
-        # if(j==i)
+      for(j in (i+1):6){
         surv[i,j] <- exp(surv_par[ii])
         ii <- ii + 1
       }
-      surv[,6] <- 1
+      surv[i,i] <- -sum(surv[i,])
     }
-    for(i in 1:5){
-      surv[i,] <- surv[i,]/sum(surv[i,])
-    }
+    surv <- as.matrix(Matrix::expm(surv))
+
+    surv2 <- t(surv)
 
     # Compute probability matrix
     p <- matrix(0,6,6)
@@ -76,12 +76,11 @@ rtmb_model <- function(parms){
 
 
     # Derived variables
-    N <- matrix(0,6,max(t_k))      # Total carcasses over time
-    TotalCarcasses_t <- matrix(0,6,max(t_k))      # Total carcasses over time
-    TaggedCarcasses_t <- matrix(0,6,max(t_k))      # Tagged carcasses over time
-    E_TotalCarcasses_t <- matrix(0,6,max(t_k))      # Total carcasses over time
-    E_TaggedCarcasses_t <- matrix(0,6,max(t_k))      # Tagged carcasses over time
-    T_available <- matrix(0,6,max(t_k))      # Total carcasses over time
+    N <- matrix(0,6,max(t_k))      # Total available carcasses over time
+    TotalCarcasses_t <- matrix(0,6,max(t_k))      # Observed Total carcasses over time
+    TaggedCarcasses_t <- matrix(0,6,max(t_k))      # Observed Tagged carcasses over time
+    E_TotalCarcasses_t <- matrix(0,6,max(t_k))      # Expected Total carcasses over time
+    E_TaggedCarcasses_t <- matrix(0,6,max(t_k))      # Expected Tagged carcasses over time
 
     #Conditional probability of loc for each carcass
     B_loc_dist <- matrix(0,6,max(t_k))
@@ -92,16 +91,11 @@ rtmb_model <- function(parms){
 
     # Loop through time steps to compute derived variables
     for (t in 2:max(t_k)) {
+
+      #Births by time and location
       B_loc_dist[,t] <- exp(c(B_loc[,t],0))/sum(exp(c(B_loc[,t],0)))
-
       # Total carcasses at time t (new + survivors)
-      N[,t] = t(exp(B_time[t] + par_PopTotal) * B_loc_dist[,t]) %*% surv + t(N[,t-1]) %*% surv;
-
-      # Tagged carcasses at time t (new tags + surviving tags)
-      for(loc in 1:5){
-        T_available[loc, t] <- sum(n[t_k == t & t_l == loc & tag == 1]);
-      }
-      T_available[,t] <- T_available[,t] + t(T_available[,t-1]) %*% surv;
+      N[,t] = t(surv) %*% ((exp(B_time[t] + par_PopTotal) * B_loc_dist[,t]) +  N[,t-1])
     }
 
     B <- exp(B_time + par_PopTotal)
@@ -131,6 +125,7 @@ rtmb_model <- function(parms){
     }
 
 
+
     for(i in 1:length(t_l)){
       if(tag[i]==TRUE){
         m <- matrix(0,6,6)
@@ -141,6 +136,7 @@ rtmb_model <- function(parms){
           for(k in (t_k[i]+1):last_k){
             m <- m %*% surv %*% diag(p[,6])
           }
+          # m <- m %*% surv %*% diag(p[,6])
         }
 
         if(!is.na(r_k[i])){#Recaptured
@@ -189,6 +185,7 @@ rtmb_model <- function(parms){
     REPORT(B)
     REPORT(B_loc_dist)
     REPORT(surv)
+    REPORT(surv2)
     REPORT(p)
     REPORT(probability_of_outcome)
     REPORT(taggingRate)
@@ -196,7 +193,6 @@ rtmb_model <- function(parms){
     REPORT(TotalCarcasses_t)
     REPORT(E_TaggedCarcasses_t)
     REPORT(E_TotalCarcasses_t)
-    REPORT(T_available)
     REPORT(nll_tag)
     REPORT(nll_detect)
     REPORT(nll_CJS)
@@ -206,6 +202,7 @@ rtmb_model <- function(parms){
     RTMB::ADREPORT(E_TotalCarcasses_t)
     RTMB::ADREPORT(B_ts)
     RTMB::ADREPORT(B_total)
+    RTMB::ADREPORT(taggingRate)
 
     return(-(sum(nll_B) +
             nll_CJS_total +
@@ -220,9 +217,6 @@ rtmb_model <- function(parms){
 obj <- RTMB::MakeADFun(rtmb_model,
                        parameters,
                        random = c("B_time","B_loc","taggingRate_re"),
-                       # map = list(
-                       #   R_sig = as.factor(NA),
-                       #   C_sig = as.factor(NA)),
                        silent = TRUE)
 
 # Optimize Model
@@ -231,89 +225,3 @@ rep <- obj$report()
 sd.est <- as.list(sdreport(obj),"Estimate", report = TRUE)
 sd.sd <- as.list(sdreport(obj),"Std. Error", report = TRUE)
 
-# E <- reshape2::melt(rep$N)
-# E %>% #filter(Var1 != 6) %>%
-#   ggplot(aes(x = Var1, y = value)) +
-#   geom_col() +
-#   facet_wrap(~Var2, ncol = 4, scales = "free") +
-#   xlab("Location") +
-#   ylab("Total carcass abundance") +
-#   theme_classic()
-#
-# E <- reshape2::melt(t(rep$B * t(rep$B_loc_dist)))
-# E %>% #filter(Var1 != 6) %>%
-#   ggplot(aes(x = Var1, y = value)) +
-#   geom_col() +
-#   facet_wrap(~Var2, ncol = 4) +
-#   xlab("Location") +
-#   ylab("Births") +
-#   theme_classic()
-#
-# sd <- sdreport(obj)
-# E <- d %>%
-#   group_by(t_k, t_l, tag) %>%
-#   mutate(t_k_total = sum(n))  %>%
-#   mutate(obs = n)
-# # E$p <-  rep$probability_of_outcome
-# E$pred <- sd$value
-# E$sd <- sd$sd
-#
-# E <- E %>%
-#   filter(tag ==TRUE) %>%
-#   group_by(t_k,t_l,r_l) %>%
-#   summarise(obs = sum(obs),
-#             pred = sum(exp(pred)),
-#             sd = sum(sd))
-#
-#
-# E %>%
-#   filter(t_k<=5) %>%
-#   mutate(r_l = ifelse(is.na(r_l),6,r_l)) %>%
-#   ggplot(aes(x = r_l, y = obs)) +
-#   geom_col(color = grey(0.9), alpha = 0.2) +
-#   geom_point(aes(x = r_l, y = (pred)), col = "black") +
-#   geom_errorbar(aes(ymin = exp(log(pred) - 1.96 * sd), ymax = exp(log(pred) + 1.96 * sd)), col = "black") +
-#   facet_grid(t_l~t_k) +
-#   xlab("Recapture location") +
-#   theme_bw() +
-#   theme(
-#     panel.grid.major = element_blank(),  # Remove major grid lines
-#     panel.grid.minor = element_blank()   # Remove minor grid lines
-#   )
-#
-# E %>%
-#   filter(t_k>5 & t_k <=10) %>%
-#   mutate(r_l = ifelse(is.na(r_l),6,r_l)) %>%
-#   ggplot(aes(x = r_l, y = obs)) +
-#   geom_col(color = grey(0.9), alpha = 0.2) +
-#   geom_point(aes(x = r_l, y = (pred)), col = "black") +
-#   geom_errorbar(aes(ymin = exp(log(pred) - 1.96 * sd), ymax = exp(log(pred) + 1.96 * sd)), col = "black") +
-#   facet_grid(t_l~t_k) +
-#   xlab("Recapture location") +
-#   theme_bw() +
-#   theme(
-#     panel.grid.major = element_blank(),  # Remove major grid lines
-#     panel.grid.minor = element_blank()   # Remove minor grid lines
-#   )
-#
-# E %>%
-#   filter(t_k>10 & t_k <=16) %>%
-#   mutate(r_l = ifelse(is.na(r_l),6,r_l)) %>%
-#   ggplot(aes(x = r_l, y = obs)) +
-#   geom_col(color = grey(0.9), alpha = 0.2) +
-#   geom_point(aes(x = r_l, y = (pred)), col = "black") +
-#   geom_errorbar(aes(ymin = exp(log(pred) - 1.96 * sd), ymax = exp(log(pred) + 1.96 * sd)), col = "black") +
-#   facet_grid(t_l~t_k, scales = "free_y") +
-#   xlab("Recapture location") +
-#   theme_bw() +
-#   theme(
-#     panel.grid.major = element_blank(),  # Remove major grid lines
-#     panel.grid.minor = element_blank()   # Remove minor grid lines
-#   )
-#
-# reshape2::melt(rep$taggingRate) %>%
-#   ggplot(aes(x = Var2, y = value)) +
-#   facet_wrap(~Var1, ncol = 2) +
-#   geom_line()
-#
-# print(sum(rep$B))
