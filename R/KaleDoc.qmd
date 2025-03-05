@@ -48,7 +48,7 @@ $$
 
 where, $\Delta t$ is the would be equal to the time period between the initial survey and the when the first carcass is likely to have show up on the spawning grounds.
 
-### State transition *probability* matrix, $\Phi_{\Delta t}$ 
+### State transition *probability* matrix, $\Phi_{\Delta t}$
 
 The state transition probability matrix describes the probability of a carcass remaining in its tagging location, transitioning and being recapture to another location, or never being recaptured again. The probability matrix $\Phi_{\Delta t}$ is derived from the transition *rate* matrix $\mathrm{Q}$ and the difference in time $\Delta t$ between surveys.
 
@@ -188,24 +188,27 @@ Once the data are wrangled, we can create the data and parameter list to feed in
 
 # Load Data
 data <- list(
+  y_i = d$y_i, #year effect
   t_k = d$t_k,   # First detection week
   r_k = d$r_k,   # Recapture week (NA if not recaptured)
   t_l = d$t_l,   # First detection location
   r_l = d$r_l,   # Recapture location (NA if not recaptured)
-  tag = as.integer(d$tag) # Whether tagged (1 = tagged, 0 = not)
-)
+  tag = as.integer(d$tag), # Whether tagged (1 = tagged, 0 = not)
+  n = d$n,
+  n_y = length(unique(d$y_i))
+  )
 
 parameters = list(
-  surv_par = rep(0,15),      # Logit persistence probability
-  detection_par = rep(0,5),        # Logit detection probability
-  taggingRate_par = rep(0,5),      # Logit tagging probability
-  taggingRate_re = matrix(0,5,max(data$t_k)),      # Logit tagging probability
-  par_PopTotal = 1,   # Log expected carcass births
+  surv_par = matrix(-2,data$n_y,15),      # Logit persistence probability
+  detection_par = matrix(0,data$n_y,5),        # Logit detection probability
+  taggingRate_par = matrix(0,data$n_y,5),      # Logit tagging probability
+  taggingRate_re = array(0,c(data$n_y,5,max(data$t_k))),      # Logit tagging probability
+  par_PopTotal = rep(0,data$n_y),   # Log expected carcass births
   B_time_sig = 0,
   B_loc_sig = 0,
   taggingRate_sig = 0,
-  B_time = rep(0, max(data$t_k)),  #Carcasses by week
-  B_loc = matrix(0, 5,max(data$t_k))  #Distribution of carcasses by location
+  B_time = matrix(0, data$n_y, max(data$t_k)),  #Carcasses by week
+  B_loc = array(0,c(data$n_y, 5,max(data$t_k)))  #Distribution of carcasses by location
 )
 ```
 
@@ -226,33 +229,34 @@ source("../R/test_code_MV2.r")
 #### Total carcasses, $N_{t,s} \times p_{t,s}$
 
 ```{r}
+library(ggplot2)
 E <- reshape2::melt(sd.est$E_TotalCarcasses_t)
 E$sd <- reshape2::melt(sd.sd$E_TotalCarcasses_t)$value
 E$obs <- reshape2::melt(rep$TotalCarcasses_t)$value
 E %>% filter(Var1 != 6) %>%
-  ggplot(aes(x = Var1, y = obs)) +
+  ggplot(aes(x = Var2, y = obs)) +
   geom_point() +
-  geom_point(aes(x = Var1, y = value), color = "red", alpha = 0.5) +
+  geom_point(aes(x = Var2, y = value), color = "red", alpha = 0.5) +
   geom_errorbar(aes(ymin = value - 1.96 * sd, ymax = value + 1.96 * sd), color = "red", alpha = 0.5, width = 0.2) +
-  facet_wrap(~Var2, ncol = 4, scales = "free_y") +
+  facet_grid(Var1~Var3, scales = "free_y") +
   xlab("Location") +
   ylab("Number of total carcasses") +
   theme_classic()
 
 ```
 
-#### Carcass tagging rate, $C_{t,s} \times \psi_{t,s}$ 
+#### Carcass tagging rate, $C_{t,s} \times \psi_{t,s}$
 
 ```{r}
 E <- reshape2::melt(sd.est$E_TaggedCarcasses_t)
 E$sd <- reshape2::melt(sd.sd$E_TaggedCarcasses_t)$value
 E$obs <- reshape2::melt(rep$TaggedCarcasses_t)$value
 E %>% filter(Var1 != 6) %>%
-  ggplot(aes(x = Var1, y = obs)) +
+  ggplot(aes(x = Var2, y = obs)) +
   geom_point() +
-  geom_point(aes(x = Var1, y = value), color = "red", alpha = 0.5) +
+  geom_point(aes(x = Var2, y = value), color = "red", alpha = 0.5) +
   geom_errorbar(aes(ymin = value - 1.96 * sd, ymax = value + 1.96 * sd), color = "red", alpha = 0.5, width = 0.2) +
-  facet_wrap(~Var2, ncol = 4, scales = "free_y") +
+  facet_grid(Var1~Var3, scales = "free_y") +
   xlab("Location") +
   ylab("Number of tagged carcasses") +
   theme_classic()
@@ -265,7 +269,8 @@ These estimates represent the number of recaptured (y-axis) by recapture locatio
 
 ```{r}
 E <- d %>%
-  group_by(t_k, t_l, tag) %>%
+  group_by(y_i,t_k, t_l, tag) %>%
+
   mutate(t_k_total = sum(n))  %>%
   mutate(obs = n)
 # E$p <-  rep$probability_of_outcome
@@ -274,7 +279,7 @@ E$sd <- sd.sd$pred2
 
 E <- E %>%
   filter(tag ==TRUE) %>%
-  group_by(t_k,t_l,r_l) %>%
+  group_by(y_i,t_k,t_l,r_l) %>%
   summarise(obs = sum(obs),
             pred = sum(exp(pred)),
             sd = sum(sd))
@@ -282,10 +287,10 @@ E <- E %>%
 E %>%
   filter(t_k<=5) %>%
   mutate(r_l = ifelse(is.na(r_l),6,r_l)) %>%
-  ggplot(aes(x = r_l, y = obs)) +
-  geom_point(color = "black", alpha = 0.8) +
-  geom_point(aes(x = r_l, y = (pred)), col = "red", alpha = 0.5) +
-  geom_errorbar(aes(ymin = exp(log(pred) - 1.96 * sd), ymax = exp(log(pred) + 1.96 * sd)), col = "red", alpha = 0.5, width = 0.5) +
+  ggplot(aes(x = r_l, y = obs, color = as.factor(y_i))) +
+  geom_point(alpha = 0.8, shape = 2) +
+  geom_point(aes(x = r_l, y = (pred), color = as.factor(y_i)), alpha = 0.5) +
+  geom_errorbar(aes(ymin = exp(log(pred) - 1.96 * sd), ymax = exp(log(pred) + 1.96 * sd), color = as.factor(y_i)), alpha = 0.5, width = 0.5) +
   facet_grid(t_l~t_k, scales = "free_y") +
   xlab("Recapture location") +
   theme_bw() +
@@ -341,17 +346,17 @@ facet_grid(t_l~t_k, scales = "free_y") +
 E <- reshape2::melt(sd.est$B_total)
 E$sd <- reshape2::melt(sd.sd$B_total)$value
 x <- rnorm(1000,sd.est$B_total,sd.sd$B_total)
-hist(exp(x),
-     main = "",
-     ylab = "",
-     xlab = "Total births")
-#E %>% #filter(Var1 != 6) %>%
-#  ggplot(aes(x = Var1, y = exp(value))) +
-#  geom_col() +
-#  geom_errorbar(aes(ymin = exp(value - 1.96 * sd), ymax = exp(value + 1.96 * sd))) +
-#  xlab("Location") +
-#  ylab("Total births") +
-#  theme_classic()
+# hist(exp(x),
+#      main = "",
+#      ylab = "",
+#      xlab = "Total births")
+E %>% #filter(Var1 != 6) %>%
+ ggplot(aes(x = Var1, y = exp(value))) +
+ geom_point() +
+ geom_errorbar(aes(ymin = exp(value - 1.96 * sd), ymax = exp(value + 1.96 * sd))) +
+ xlab("Year") +
+ ylab("Total births") +
+ theme_classic()
 
 ```
 
@@ -361,10 +366,10 @@ hist(exp(x),
 E <- reshape2::melt(sd.est$B_ts)
 E$sd <- reshape2::melt(sd.sd$B_ts)$value
 E %>% #filter(Var1 != 6) %>%
-  ggplot(aes(x = Var1, y = exp(value))) +
-  geom_col() +
+  ggplot(aes(x = Var2, y = exp(value))) +
+  geom_point() +
   geom_errorbar(aes(ymin = exp(value - 1.96 * sd), ymax = exp(value + 1.96 * sd))) +
-  facet_wrap(~Var2, ncol = 4, scales = "free_y") +
+  facet_grid(Var1~Var3, scales = "free_y") +
   xlab("Location") +
   ylab("Births") +
   theme_classic()
@@ -375,49 +380,63 @@ E %>% #filter(Var1 != 6) %>%
 
 ### Parameters
 
-#### Transition matrix $\Psi$ 
+#### Transition matrix $\Psi$
 
 ```{r}
-p.mat <- corrplot::cor.mtest(rep$surv)
-M <- rep$surv
-# M[6,6] <- NA
-colnames(M) <- c(paste("NLL", 1:5),"'Death'")
-rownames(M) <- c(paste("NLL", 1:5),"'Death'")
+df_long <- reshape2::melt(rep$surv) %>% 
+  mutate(value = ifelse(value==0,NA,value))
+# M <- rep$surv
+# # M[6,6] <- NA
+# colnames(M) <- c(paste("NLL", 1:5),"'Death'")
+# rownames(M) <- c(paste("NLL", 1:5),"'Death'")
 
-corrplot::corrplot(
-  M, 
-  
-  method = "color",       # or "color", "ellipse", etc.
-  type = "upper",          # upper or lower triangle of correlation matrix
-  addCoef.col = "black",   # color of correlation coefficients
-  tl.col = "black",        # color of text labels (variable names)
-  tl.srt = 45,
-  col.lim = c(0,1)
-  # text label rotation
-)
+ggplot(df_long, aes(x = Var3, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.5) +
+  facet_wrap(~ Var1, ncol = 2) +
+  labs(title = "Trnasition probabilities", fill = "Transition \n probability") +
+  theme_minimal() +
+  xlab("Initital location") +
+  ylab("Recapture location") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(data = df_long %>% filter(!is.na(value)),
+            aes(label = round(value, 2)),
+            color = "black",
+            size = 3)
+# 
+# corrplot::corrplot(
+#   M, 
+#   
+#   method = "color",       # or "color", "ellipse", etc.
+#   type = "upper",          # upper or lower triangle of correlation matrix
+#   addCoef.col = "black",   # color of correlation coefficients
+#   tl.col = "black",        # color of text labels (variable names)
+#   tl.srt = 45,
+#   col.lim = c(0,1)
+#   # text label rotation
+# )
 
 ```
 
-#### Detection matrix $\mathrm{p}$ 
+#### Detection matrix $\mathrm{p}$
 
 ```{r}
-p.mat <- corrplot::cor.mtest(rep$p)
-M <- rep$p
-# M[6,6] <- NA
-colnames(M) <- c(paste("NLL", 1:5),"'Non-detect'")
-rownames(M) <- c(paste("NLL", 1:5),"'Non-detect'")
+df_long <- reshape2::melt(rep$p) %>% 
+  mutate(value = ifelse(value==0,NA,value))
 
-corrplot::corrplot(
-  M, 
-  
-  method = "color",       # or "color", "ellipse", etc.
-  type = "upper",          # upper or lower triangle of correlation matrix
-  addCoef.col = "black",   # color of correlation coefficients
-  tl.col = "black",        # color of text labels (variable names)
-  tl.srt = 45,
-  col.lim = c(0,1)
-  # text label rotation
-)
+ggplot(df_long, aes(x = Var3, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.5) +
+  facet_wrap(~ Var1, ncol = 2) +
+  labs(title = "Detection probabilities", fill = "Detection \n probability") +
+  theme_minimal() +
+  xlab("Location") +
+  ylab("Location") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(data = df_long %>% filter(!is.na(value)),
+            aes(label = round(value, 2)),
+            color = "black",
+            size = 3)
 
 ```
 
@@ -427,11 +446,11 @@ corrplot::corrplot(
 E <- reshape2::melt(sd.est$taggingRate)
 E$sd <- reshape2::melt(sd.sd$taggingRate)$value
 E %>% #filter(Var1 != 6) %>%
-  ggplot(aes(x = Var2, y = (value))) +
+  ggplot(aes(x = Var3, y = (value))) +
   geom_point() +
   geom_errorbar(aes(ymin = (value - 1.96 * sd), ymax = (value + 1.96 * sd))) +
-  facet_wrap(~Var1, ncol = 2, scales = "free_y") +
-  xlab("Location") +
+  facet_grid(Var1~Var2, scales = "free_y") +
+  xlab("Week") +
   ylab("Tagging rate") +
   theme_classic()
 
