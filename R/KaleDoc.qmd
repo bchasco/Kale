@@ -2,7 +2,9 @@
 title: "Kale : Lewis River Carcassess"
 author: "Brandon Chasco"
 format:
-  html
+  html:
+    embed-resources: true
+    code-background: true
 editor: visual
 ---
 
