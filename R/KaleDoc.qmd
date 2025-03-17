@@ -423,10 +423,12 @@ ggplot(df_long, aes(x = Var3, y = Var2, fill = value)) +
 #### Detection matrix $\mathrm{p}$
 
 ```{r}
+library(ggplot2)
 df_long <- reshape2::melt(rep$p) %>% 
+  filter(Var2 == 1) %>% 
   mutate(value = ifelse(value==0,NA,value))
 
-ggplot(df_long, aes(x = Var3, y = Var2, fill = value)) +
+ggplot(df_long, aes(x = Var4, y = Var3, fill = value)) +
   geom_tile() +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0.5) +
   facet_wrap(~ Var1, ncol = 2) +
