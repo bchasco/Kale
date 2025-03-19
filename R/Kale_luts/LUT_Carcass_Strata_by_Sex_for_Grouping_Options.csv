@@ -1,0 +1,14 @@
+Grouping_Strategy_Num,Sex_final,Strata_Name,Strata_Num
+1,Jack,Pooled,1
+1,Female,Pooled,1
+1,Male,Pooled,1
+2,Jack,Jacks,1
+2,Female,Adult,2
+2,Male,Adult,2
+3,Jack,Jack,1
+3,Female,Female,2
+3,Male,Male,3
+4,Female,Pooled,1
+4,Male,Pooled,1
+5,Female,Female,1
+5,Male,Male,2

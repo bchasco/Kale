@@ -1,0 +1,6 @@
+Grouping_Strategy_Num,Carcass_Grouping_Strategy,Num_of_strata,Group_Name,Group_details
+1,Pooled,1,Pooled_All,carcass data will be pooled and analyzed as one group in the Jolly-Seber analysis; carcasses include both Jacks and Adults
+2,Stratified,2,Jacks_Adults,carcass data will be stratified and analyzed in two groups (Jacks and Adults) in the Jolly-Seber analysis; Adults are a pooled group consisting of Males or Females
+3,Stratified,3,Jacks_Males_Females,"carcass data will be stratified and analyzed in three groups (Jacks, Males, Females) in the Jolly-Seber analysis "
+4,Pooled,1,Pooled_Adults,"carcass data will be pooled and analyzed as one group in the Jolly-Seber analysis; carcasses only include Adults (i.e., any Jack carcass will be filtered out)"
+5,Stratified,2,Males_Females,"carcass data will be stratified and analyzed in two groups (Male and Females) in the Jolly-Seber analysis; carcasses only include Adults (i.e., any Jack carcass will be filtered out)"
