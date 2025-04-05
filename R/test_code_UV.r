@@ -5,38 +5,40 @@ library(dplyr)
 library(tidyr)
 library(readr)
 
-# Define the relative directory (from project root)
-directory_path <- "Data/nfl"
+# # Define the relative directory (from project root)
+# directory_path <- "Data/nfl"
+#
+# # Get the list of files (returning only filenames)
+# file_list <- dir_ls(directory_path, type = "file") |>
+#   basename()
+#
+# # Function to read each file
+# read_file_contents <- function(file_path) {
+#   tryCatch(
+#     {
+#       df <- read_csv(paste0("data/nfl/",file_path), col_types = cols(default = "c"), show_col_types = FALSE) |>
+#         mutate(source_file = basename(file_path)) # Add column for source file
+#
+#     },
+#     error = function(e) {
+#       message("Skipping file: ", file_path, " - Error: ", e$message)
+#       return(NULL)
+#     }
+#   )
+# }
+#
+# # Read and combine all files
+# combined_data <- file_list  %>%
+#   lapply(read_file_contents)
 
-# Get the list of files (returning only filenames)
-file_list <- dir_ls(directory_path, type = "file") |>
-  basename()
-
-# Function to read each file
-read_file_contents <- function(file_path) {
-  tryCatch(
-    {
-      df <- read_csv(paste0("data/nfl/",file_path), col_types = cols(default = "c"), show_col_types = FALSE) |>
-        mutate(source_file = basename(file_path)) # Add column for source file
-
-    },
-    error = function(e) {
-      message("Skipping file: ", file_path, " - Error: ", e$message)
-      return(NULL)
-    }
-  )
-}
-
-# Read and combine all files
-combined_data <- file_list  %>%
-  lapply(read_file_contents)
+combined_data <- read.csv("./data/NF_Lewis_combined-2013_2024-2025-03-19.csv")
 cols <- c("Return_Yr","SPECIES","Run","ScaleAge", "Sex","TagDate","TagReach",
           "Tag1","Tag2","RecapDate","RecapReach")
 
-result <- do.call(rbind, lapply(combined_data, function(df) df[, cols, drop = FALSE])) %>%
+result <- combined_data %>%
   mutate(oa = ifelse(is.na(ScaleAge)|(ScaleAge==9)|(ScaleAge==88),-1,as.numeric(substr(ScaleAge,1,1)) - as.numeric(substr(ScaleAge,2,2)))) %>%
   mutate(Sex = ifelse(is.na(Sex)|(Sex=="Unknown"),-1,Sex)) %>%
-  mutate(t_wk = lubridate::week(lubridate::dmy(TagDate)),
+  mutate(t_wk = lubridate::week(lubridate::mdy(TagDate)),
          r_wk = ifelse(is.na(RecapDate),NA,lubridate::week(lubridate::dmy(RecapDate))),
          y_i = Return_Yr) %>%
   mutate(r_wk = ifelse(as.numeric(as.character(r_wk))<20,r_wk+ 52,r_wk),
@@ -56,7 +58,7 @@ lk_up_r <- data.frame(
 )
 #
 # Perform left joins to assign t_l and r_l separately
-year <- 2015
+year <- 2013
 d <- result %>%
   filter(t_k<=22
          ,Return_Yr %in% c(!!year)
@@ -133,10 +135,10 @@ rtmb_model <- function(parms){
     N <- matrix(0, 2, max(t_k))      # Total available carcasses over time
 
     # Initialize spatial distribution for the first time step
-    N[,1] <- as.matrix(t(Matrix::expm(f_surv * 0.5))) %*% c(exp(B_time[1] + par_PopTotal),0)
+    N[,1] <- t(as.matrix(Matrix::expm(f_surv * 0.5))) %*% c(exp(B_time[1] + par_PopTotal),0)
     # Loop through time steps to compute derived variables
     for(t in 2:max(t_k)){
-      N[,t] = as.matrix(t(Matrix::expm(f_surv * 0.5))) %*% c(exp(B_time[t] + par_PopTotal),0) +
+      N[,t] = t(as.matrix(Matrix::expm(f_surv * 0.5))) %*% c(exp(B_time[t] + par_PopTotal),0) +
         t(surv) %*% N[,t-1]
     }
 
@@ -211,9 +213,13 @@ rtmb_model <- function(parms){
     REPORT(B)
     REPORT(surv)
     REPORT(p)
-    ADREPORT(Btotal)
+    REPORT(Btotal)
     REPORT(nll_CJS_total)
-
+    REPORT(taggingRate_par)
+    ADREPORT(Btotal)
+    ADREPORT(surv)
+    ADREPORT(E_TotalCarcasses_t)
+    ADREPORT(B)
     return(-(nll_CJS_total +
             sum(nll_detect) +
             sum(nll_tag) +
@@ -231,10 +237,11 @@ obj <- RTMB::MakeADFun(rtmb_model,
 opt <- TMBhelper::fit_tmb(obj)
 rep <- obj$report()
 sdr <- sdreport(obj)
+as.list(sdr,"Estimate",report=TRUE)$B
 
-print(round(rep$E_TotalCarcasses_t))
-print(round(rep$N))
-print(year)
-print(sum(rep$B))
-print(sdr$sd)
-
+# print(round(rep$E_TotalCarcasses_t))
+# print(round(rep$N))
+# print(year)
+# print(sum(rep$B))
+# print(sdr$sd)
+#
