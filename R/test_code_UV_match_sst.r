@@ -5,31 +5,6 @@ library(dplyr)
 library(tidyr)
 library(readr)
 
-# # Define the relative directory (from project root)
-# directory_path <- "Data/nfl"
-#
-# # Get the list of files (returning only filenames)
-# file_list <- dir_ls(directory_path, type = "file") |>
-#   basename()
-#
-# # Function to read each file
-# read_file_contents <- function(file_path) {
-#   tryCatch(
-#     {
-#       df <- read_csv(paste0("data/nfl/",file_path), col_types = cols(default = "c"), show_col_types = FALSE) |>
-#         mutate(source_file = basename(file_path)) # Add column for source file
-#
-#     },
-#     error = function(e) {
-#       message("Skipping file: ", file_path, " - Error: ", e$message)
-#       return(NULL)
-#     }
-#   )
-# }
-#
-# # Read and combine all files
-# combined_data <- file_list  %>%
-#   lapply(read_file_contents)
 
 combined_data <- read.csv("./data/NF_Lewis_combined-2013_2024-2025-03-19.csv")
 cols <- c("Return_Yr","SPECIES","Run","ScaleAge", "Sex","TagDate","TagReach",
@@ -44,7 +19,8 @@ result <- combined_data %>%
   mutate(r_wk = ifelse(as.numeric(as.character(r_wk))<20,r_wk+ 52,r_wk),
          t_wk = ifelse(as.numeric(as.character(t_wk))<20,t_wk+ 52,t_wk)) %>%
   mutate(t_k = t_wk - min(t_wk) + 1,
-         r_k = r_wk - min(t_wk) + 1)
+         r_k = r_wk - min(t_wk) + 1) %>%
+  group_by(t_wk) %>%
 
 # Create lookup tables separately for TagReach and RecapReach
 lk_up <- data.frame(
@@ -58,7 +34,7 @@ lk_up_r <- data.frame(
 )
 #
 # Perform left joins to assign t_l and r_l separately
-year <- 2020
+year <- 2013
 d <- result %>%
   filter(t_k<=22
          ,Return_Yr %in% c(!!year)
@@ -94,7 +70,7 @@ data <- list(
 parameters = list(
   surv_par = 0,      # Logit persistence probability
   detect_par = 0,
-  taggingRate_par = rep(0, max(d$t_k)),      # Logit tagging probability
+  taggingRate_par = 0,      # Logit tagging probability
   par_PopTotal = 6,   # Log expected carcass births
   B_time_sig = 0,
   B_time = rep(0, max(d$t_k))
@@ -158,7 +134,7 @@ rtmb_model <- function(parms){
                                    t(c(1,0)) %*% E_TotalCarcasses_t[,t],
                                        log = TRUE)
       #Carcass tagging rate likelihood
-      E_TaggedCarcasses_t[t] <- E_TotalCarcasses_t[1,t] * plogis(taggingRate_par[t])
+      E_TaggedCarcasses_t[t] <- E_TotalCarcasses_t[1,t] * plogis(taggingRate_par)
 
       nll_tag[t] <- RTMB::dpois(CarcassesW_tags_t[t] + 1,
                                       E_TaggedCarcasses_t[t],
@@ -207,7 +183,6 @@ rtmb_model <- function(parms){
 
     nll_CJS_total <- sum(log(nll_CJS[tag==TRUE])*n[tag==TRUE])
     nll_B_time <- RTMB::dnorm(B_time, -0.5*exp(B_time_sig)^2, exp(B_time_sig), log = TRUE)
-    nll_taggingRate_time <- RTMB::dnorm(taggingRate_par, -0, 1, log = TRUE)
 
     B <- exp(B_time + par_PopTotal)
     Btotal <- sum(B)
@@ -224,8 +199,7 @@ rtmb_model <- function(parms){
     return(-(nll_CJS_total +
             sum(nll_detect) +
             sum(nll_tag) +
-            sum(nll_B_time) +
-              sum(nll_taggingRate_time))
+            sum(nll_B_time))
     )
     # return(0)
 }
