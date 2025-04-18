@@ -91,7 +91,6 @@ dat_format_init<-
 # Preview formatted data
 dat_format_init |> count(Tagged, Recap)
 
-
 #------------------------------------------------------------------------------------------------------------------------- -
 # create master LUT of sample periods/dates  ----
 #------------------------------------------------------------------------------------------------------------------------- -
@@ -112,8 +111,11 @@ dat_format_periods<-
   rowid_to_column(var = "Index") |>
   left_join(period_table$periods_by_date, by = c("Date_Maiden" = "Date")) |>     # **period tagged**
   rename(Period_Cap = Period) |>
-  mutate(Year_Period = paste(Return_Yr, Period_Cap, sep="_")) |>
-  mutate(days_between_capture = if_else(Recap == 1, as.numeric(Date_Recap - Date_Maiden), NA_real_ ))
+  left_join(period_table$periods_by_date, by = c("Date_Recap" = "Date")) |>     # **period recapped**
+  rename(Period_Recap = Period) |>
+  mutate(Year_Period = paste(Return_Yr, Period_Cap, sep="_"), Year_Period_Recap = paste(Return_Yr, Period_Recap, sep="_")) |>
+  mutate(days_between_capture = if_else(Recap == 1, as.numeric(Date_Recap - Date_Maiden), NA_real_ )) #|>
+  #rename(Date_Cap = Date_Maiden)
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------
 # supplemental section to account for jacks not being clearly identified by field crews (NOTE: protocols were updated to address this issue in 2022) ----
@@ -142,7 +144,6 @@ dat_format_final<-
   )
   )
 dat_format_final |> group_by(Return_Yr) |> count(Sex_Temp) |> pivot_wider(names_from =  Sex_Temp, values_from = n)
-
 
 #------------------------------------------------------------------------------------------------------------------------- -
 # execute project specific data updates and generate final data set  ----
@@ -185,7 +186,7 @@ dat_format_final |> group_by(Return_Yr) |> count(Sex_Temp) |> pivot_wider(names_
     left_join(LUT_strata$by_sex , by=c("Sex_final")) |>
     filter(days_between_capture>0|is.na(Date_Recap)==TRUE) |>
     filter(is.na(Strata_Name)==FALSE) |>
-    select(Location, Return_Yr, Period_Cap,	Year_Period, Species, Run, Sex_original = Sex, FL, Mark, ScaleAge, Tag1, Tag2, RecapTag1, RecapTag2, Date_Maiden,	Date_Recap, TagState,	RecapState, Sex_final, check) |>
+    select(Location, Return_Yr, Species, Run, Sex_original = Sex, Sex_final, Date_Cap = Date_Maiden,	Date_Recap, Period_Cap,	Period_Recap, Year_Period_Cap =  Year_Period, Year_Period_Recap, days_between_capture,  FL, Mark, ScaleAge, Tag1, Tag2, RecapTag1, RecapTag2,  TagState,	RecapState,  check) |>
     print(width=Inf)
 
 #-----------------------------------------------------------------------------------------------------
