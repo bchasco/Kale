@@ -118,7 +118,7 @@ for (i in 1:length(models)){
       , model.file = glue("models/{models[i]}")
       , n.chains= 4
       , n.thin= 40
-      , n.burnin= 15000
+      , n.burnin= 5000
       , n.iter = 20000
       , parameters.to.save=c("p",
                              "phi",

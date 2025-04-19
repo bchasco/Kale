@@ -1,17 +1,25 @@
-year <- 2022
 
-# source("r/sst_JAGS.r")
+year <- 2024
+
+source("r/sst_JAGS.r")
 source("r/sst_RTMB_ind.r")
 
 tmb <- tmb_rep$out$v_w
 jag <- colMeans(jag_out$BUGSoutput$sims.list$v)[1:length(tmb)]
 obs <- (MR_data$R/MR_data$n)[1:length(tmb)]
-df_v <- data.frame(jag = jag,tmb = tmb, obs = obs) %>%
+obs_tmb <- d %>%
+  group_by(t_k) %>%
+  summarize(r = sum(tag*n), R = sum(n)) %>% #sum(tag * (!is.na(r_wk)))) %>%
+  mutate(obs_v = r/R) %>%
+  select(obs_v)
+
+df_v <- data.frame(jag = jag,tmb = tmb, obs = obs, obs_tmb = obs_tmb$obs_v[1:length(tmb)]) %>%
   rowid_to_column("id") %>%
-  pivot_longer(cols = c(jag, tmb, obs), names_to = "method", values_to = "value")
+  pivot_longer(cols = c(jag, tmb, obs, obs_tmb), names_to = "method", values_to = "value")
 v <- ggplot(df_v, aes(x = id, y = value, color = method)) +
-  geom_line(data = filter(df_v, method != "obs"), size = 1.2, alpha = 0.7) +
-  geom_point(data = filter(df_v, method == "obs"), size = 3) +
+  geom_line(data = filter(df_v, !(method %in% c("obs","obs_tmb"))), size = 1.2, alpha = 0.7) +
+  # geom_point(data = filter(df_v, method != "obs"), size = 1.2, alpha = 0.7) +
+  geom_point(data = filter(df_v, method %in% c("obs","obs_tmb")), size = 3) +
   labs(x = "Strata", y = "Marking rate") +
   theme_bw()
 print(v)
@@ -19,12 +27,44 @@ print(v)
 tmb <- tmb_rep$out$tau
 jag <- colMeans(jag_out$BUGSoutput$sims.list$tau)[1:length(tmb)]
 obs <- (MR_data$m/MR_data$T)[1:length(tmb)]
-df_tau <- data.frame(jag = jag, tmb = tmb, obs = obs) %>%
+# Filter for tagged fish only
+tagged <- d %>%
+  filter(tag == TRUE)
+
+m <- d %>%
+  filter(!is.na(r_k)) %>%
+  group_by(t_k) %>%
+  summarize(m = sum(n), .groups = "drop") %>%
+  complete(t_k = 1:s, fill = list(m = 0)) %>%
+  arrange(t_k)
+
+# Expand each group to all available periods between t_k + 1 and r_k (or s if not recaptured)
+expanded_T <- tagged %>%
+  mutate(
+    t_start = t_k,
+    t_end = ifelse(is.na(r_k), s, r_k)
+  ) %>%
+  rowwise() %>%
+  mutate(
+    available_times = list(seq(t_start, t_end))
+  ) %>%
+  unnest(available_times) %>%
+  filter(available_times <= s) %>%
+  group_by(available_times) %>%
+  summarize(T = sum(n), .groups = "drop") %>%
+  complete(available_times = 1:s, fill = list(T = 0)) %>%
+  arrange(available_times)
+
+# Rename for clarity
+m$T_vec <- c(expanded_T$T)
+obs_tmb <- m$m/m$T_vec;
+
+df_tau <- data.frame(jag = jag, tmb = tmb, obs = c(obs)) %>%
   rowid_to_column("id") %>%
   pivot_longer(cols = c(jag, tmb, obs), names_to = "method", values_to = "value")
 tau <- ggplot(df_tau, aes(x = id, y = value, color = method)) +
-  geom_line(data = filter(df_tau, method != "obs"), size = 1.2, alpha = 0.7) +
-  geom_point(data = filter(df_tau, method == "obs"), size = 3) +
+  geom_line(data = filter(df_tau, !(method %in% c("obs","obs_tmb"))), size = 1.2, alpha = 0.7) +
+  geom_point(data = filter(df_tau, (method %in% c("obs","obs_tmb"))), size = 3) +
   labs(x = "Strata", y = "Recapture probability (tau)") +
   theme_bw()
 print(tau)
@@ -139,6 +179,7 @@ g_par <- list(phi = exp(rnorm(ndraw, sdr_est$log_phi - 0.5*sdr_se$log_phi^2, sdr
 print(g_par)
 
 
-g <- ggpubr::ggarrange(multP,tau,lambda,v, psi, g_par) +
+g <- ggpubr::ggarrange(multP,tau,lambda,v, g_par) +
   theme(text = element_text(size = 14))
 print(g)
+
