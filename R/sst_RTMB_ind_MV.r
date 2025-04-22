@@ -276,6 +276,35 @@ model <- function(parms){
         }
         prob <- if (entry == s) 0 else as.numeric(alpha[1,6])
       }
+      if(mod==5){
+        n_states <- 7
+        alpha <- matrix(0, nrow = 1, ncol = n_states)
+        alpha[ t_l[i] ] <- 1  # starts alive at its tagging location
+
+        S <- diag(7)
+        for (ii in 1:max(na.omit(r_l))) {
+          for (j in 1:max(na.omit(r_l))) {
+            if(ii == j){
+              S[ii, j] <- phi  # survival
+            }
+          }
+          S[ii, 7] <- 1 - phi  # dies without being detected
+        }
+
+
+        D <- diag(7)
+        for (l in 1:5) {
+          D[l, 6] <- p   # probability of detection from location l
+          D[l, l] <- 1 - p
+        }
+
+        T <- S %*% D
+        alpha[t_l[i]] <- 1  # starts at its tagging location
+        for (t in (t_k[i] + 1):s) {
+          alpha <- alpha %*% T
+        }
+        prob <- if (entry == s) 0 else as.numeric(alpha[1,6])
+      }
 
 
       # prob <- if (entry == s) 0 else as.numeric(alpha[1, 2])
@@ -346,53 +375,43 @@ model <- function(parms){
     #Proportion of the total population that is detected. Sum of the joint psi, p, and pent
     if(mod==4){
 
-      pent <- delta_w / sum(delta_w)  # entry probabilities (per time period)
-      # pent2 <- pent %o% sp_pr
-      # psi <- numeric(s)
-      tmp <- matrix(c(pent[1], 0,0,0,0, 0, 0), nrow = 1)
-      psi2 <- matrix(0,length(delta_w),5)
-      temp2 <- matrix(0,length(delta_w),5)
+      n_states <- 7                # 5 live locations + detected + dead
 
-      n_states <- 7
-      alpha <- matrix(0, nrow = 1, ncol = n_states)
-      alpha[ t_l[i] ] <- 1  # starts alive at its tagging location
+      ## build the transition once --------------------------
+      S <- diag(n_states)
+      for (l in 1:5) S[l, 7] <- 1 - phi          # die unseen
+      diag(S)[1:5] <- phi                       # survive in place
 
-      S <- diag(7)
-      for (i in 1:max(na.omit(r_l))) {
-        for (j in 1:max(na.omit(r_l))) {
-          if(i == j){
-            S[i, j] <- phi  # survival
-          }
-        }
-        S[i, 7] <- 1 - phi  # dies without being detected
+      D <- diag(n_states)
+      for (l in 1:5) {                          # l = live location
+        D[l, 6] <- p                            # detected at l
+        D[l, l] <- 1 - p                        # not detected
       }
+      T <- S %*% D                              # one‑step kernel
 
+      ## temporary stores -----------------------------------
+      psi2  <- matrix(0, s, 5)
+      temp2 <- matrix(0, s, 5)
 
-      D <- diag(7)
-      for (l in 1:5) {
-        D[l, 6] <- p   # probability of detection from location l
-        D[l, l] <- 1 - p
-      }
+      ## loop over locations j (= 1…5) ----------------------
+      ## loop over tagging locations j = 1…5
+      for (j in 1:5) {
 
-      T <- S %*% D
-      alpha[t_l[i]] <- 1  # starts at its tagging location
-      for (t in (t_k[i] + 1):s) {
-        alpha <- alpha %*% T
-      }
-      prob2 <- if (entry == s) 0 else as.numeric(alpha[1,6])
+        alpha <- matrix(0, 1, n_states)
+        alpha[1, j] <- pent[1] * sp_pr[j]          # entries that arrive in week 1
 
-      for(j in 1:5){
-        tmp <- matrix(c(pent[1]*sp_pr[j], 0,0,0,0,0, 0), nrow = 1)
-        psi2[1,j] <- tmp[1,1]  # alive and available (not yet detected)
-        for (i in 1:s) {
-          # Add new entries before advancing
-          tmp <- tmp + matrix(c(pent[i]*sp_pr[j] * (phi - 1)/log(phi), 0, 0,0,0,0,0), nrow = 1)
+        for (t in 1:s) {
 
-          psi2[i,j] <- tmp[1,1]  # alive and available (not yet detected)
+          ## add *new* entries that show up in week t
+          alpha[1, j] <- alpha[1, j] +
+            pent[t] * sp_pr[j] * (phi - 1) / log(phi)
 
-          # Propagate to next step
-          temp2[i,j] <- psi2[i,j] * p
-          tmp <- tmp %*% T
+          ## record “alive & still undetected” and the detection term
+          psi2 [t, j] <- sum(alpha[1, 1:5])
+          temp2[t, j] <- psi2[t, j] * p
+
+          ## advance one survey interval
+          alpha <- alpha %*% T
         }
       }
       pent2 <- pent%o%sp_pr
@@ -413,48 +432,76 @@ model <- function(parms){
 
 
     }
-    # if(mod==5){
-    #
-    #   pent <- delta_w / sum(delta_w)  # entry probabilities (per time period)
-    #   pent2 <- pent %o% sp_pr
-    #   psi <- numeric(s)
-    #   tmp <- matrix(c(pent[1], 0,0,0,0, 0, 0), nrow = 1)
-    #   psi2 <- matrix(0,length(delta_w),5)
-    #   temp <- matrix(0,length(delta_w),5)
-    #
-    #
-    #   # psi2[1,] <- pent2[1,]  # alive and available (not yet detected)
-    #   for(j in 1:5){
-    #     tmp <- matrix(c(pent[1]*sp_pr[j], 0,0,0,0,0, 0), nrow = 1)
-    #     psi2[1,j] <- tmp[1,1]  # alive and available (not yet detected)
-    #     for (i in 1:s) {
-    #       # Add new entries before advancing
-    #       tmp <- tmp + matrix(c(pent[i]*sp_pr[j] * (phi - 1)/log(phi), 0, 0,0,0,0,0), nrow = 1)
-    #
-    #       psi2[i,j] <- tmp[1,1]  # alive and available (not yet detected)
-    #
-    #       # Propagate to next step
-    #       temp[i,j] <- psi2[i,j] * p
-    #       tmp <- tmp %*% T
-    #     }
-    #   }
-    #   print("Second psi")
-    #   print(rowSums(psi2))
-    #   RTMB::REPORT(psi2)
-    #   RTMB::REPORT(pent2)
-    #   print("Second temp")
-    #   print(rowSums(temp))
-    #   temp <- rowSums(temp)
-    #   psi <- rowSums(psi2)
-    #   multP <- temp/sum(temp[1:s])
-    #   psiPtot <- sum(temp)
-    #   print("psiPtot second")
-    #   print(sum(temp))
-    #   print("multP second")
-    #   print(multP)
-    #
-    # }
-    if(mod<4){
+      if(mod==5){
+
+        pent <- delta_w / sum(delta_w)  # entry probabilities (per time period)
+        # pent2 <- pent %o% sp_pr
+        # psi <- numeric(s)
+        tmp <- matrix(c(pent[1], 0,0,0,0, 0, 0), nrow = 1)
+        psi2 <- matrix(0,length(delta_w),5)
+        temp2 <- matrix(0,length(delta_w),5)
+
+        n_states <- 7
+        alpha <- matrix(0, nrow = 1, ncol = n_states)
+        alpha[ t_l[i] ] <- 1  # starts alive at its tagging location
+
+        S <- diag(7)
+        for (i in 1:max(na.omit(r_l))) {
+          for (j in 1:max(na.omit(r_l))) {
+            if(i == j){
+              S[i, j] <- phi  # survival
+            }
+          }
+          S[i, 7] <- 1 - phi  # dies without being detected
+        }
+
+
+        D <- diag(7)
+        for (l in 1:5) {
+          D[l, 6] <- p   # probability of detection from location l
+          D[l, l] <- 1 - p
+        }
+
+        T <- S %*% D
+        alpha[t_l[i]] <- 1  # starts at its tagging location
+        for (t in (t_k[i] + 1):s) {
+          alpha <- alpha %*% T
+        }
+        prob2 <- if (entry == s) 0 else as.numeric(alpha[1,6])
+
+        for(j in 1:5){
+          tmp <- matrix(c(pent[1]*sp_pr[j], 0,0,0,0,0, 0), nrow = 1)
+          psi2[1,j] <- tmp[1,1]  # alive and available (not yet detected)
+          for (i in 1:s) {
+            # Add new entries before advancing
+            tmp <- tmp + matrix(c(pent[i]*sp_pr[j] * (phi - 1)/log(phi), 0, 0,0,0,0,0), nrow = 1)
+
+            psi2[i,j] <- tmp[1,1]  # alive and available (not yet detected)
+
+            # Propagate to next step
+            temp2[i,j] <- psi2[i,j] * p
+            tmp <- tmp %*% T
+          }
+        }
+        pent2 <- pent%o%sp_pr
+        RTMB::REPORT(pent2)
+        print("Second psi")
+        print(rowSums(psi2))
+        RTMB::REPORT(psi2)
+        print("Second temp")
+        print(rowSums(temp2))
+        temp2 <- rowSums(temp2)
+        psi2 <- rowSums(psi2)
+        multP2 <- temp2/sum(temp2[1:s])
+        psiPtot2 <- sum(temp2)
+        print("psiPtot second")
+        print(sum(temp2))
+        print("multP second")
+        print(multP2)
+
+
+      }
+      if(mod<4){
       #probability of entry
       print('model < 4')
       multP <- temp/sum(temp[1:s])
@@ -469,11 +516,18 @@ model <- function(parms){
       print("multP first")
       print(multP)
     }
+      if(mod == 5){
+        print("model 4")
+        multP <- temp2/sum(temp2[1:s])
+        psiPtot <- sum(temp2)
+        print("multP first")
+        print(multP)
+      }
 
     uTot <- sum(u)
     Nsuper <- (Ntot)
 
-    if (mod == 4) {
+    if (mod == 4 | mod == 5) {
       nll <- nll -
         dpois(uTot, Nsuper * psiPtot2, log = TRUE) -
         dmultinom(u, prob = multP2,    log = TRUE)
