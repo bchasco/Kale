@@ -184,32 +184,48 @@ model <- function(parms){
     psi <- rep(0,s)
     multP <- rep(0,s)
 
-    lambda[s] <- 0
-    psi[1] <- delta_w[1]/sum(delta_w)
+    # Forward algorithm replacement for 2-state model
+    pent <- delta_w / sum(delta_w)  # Entry probabilities
 
-    pent <- delta_w/sum(delta_w) #scaled probability of entry
-    for (i in (s-1):1){
-      lambda[i] <- phi*(p+(1-p)*lambda[i+1])
+    alive <- rep(0, s)
+    dead <- rep(0, s)
+    temp <- rep(0, s)
+
+    Nsuper <- exp(log_Ntot)  # or (Ntot) depending on your parameterization
+
+    alive[1] <- Nsuper * pent[1]
+    dead[1]  <- 0
+
+    for (t in 2:s) {
+      survived   <- alive[t - 1] * phi * (1 - p)
+      recaptured <- alive[t - 1] * phi * p
+
+      alive[t] <- survived + Nsuper * pent[t]
+      dead[t]  <- dead[t - 1] + recaptured
     }
 
-    psi[1] <- pent[1]
-    for (i in 1:s){
-      #i is period
-      if(i < s){
-        psi[i+1] <- psi[i]*(1-p)*phi + pent[i+1] *(phi-1)/log(phi)  #survival and still availabe for capture
+    psi_i <- numeric(s)
+
+
+    multP_raw <- numeric(s)
+    for (t in 1:s) {
+      total <- 0
+      for (e in 1:(t-1)) {
+        alive <- 1
+        for (k in (e+1):(t-1)) {
+          alive <- alive * phi * (1 - p)
+        }
+        pr_detected_now <- alive * phi * p
+        total <- total + pent[e] * pr_detected_now
       }
-      temp[i] <- psi[i]*p #joint survival after entry and then detected
-      tau[i] <-p/(p+(1-p)*lambda[i])  #Recapture probabiilty
+      multP_raw[t] <- total
     }
 
-    #probability of entry
-    multP <- temp/sum(temp[1:s])
+    psiPtot <- sum(multP_raw)  # Make sure this matches your earlier psiPtot
 
-    #Proportion of the total population that is detected. Sum of the joint psi, p, and pent
-    psiPtot <- sum(temp)
+    multP <- multP_raw / psiPtot
+
     uTot <- sum(u)
-    Nsuper <- (Ntot)
-
 
     for (i in 1:length(t_k)) {
       entry <- t_k[i]
@@ -220,26 +236,28 @@ model <- function(parms){
       p_marked <- v_w[entry]
 
       if (is_tagged) {
-        # These fish were all tagged at first detection, so:
         nll <- nll - dbinom(count, size = count, prob = p_marked, log = TRUE)
 
-        # Recapture handling
-        if (!is.na(recapture)) {
-          # All were recaptured
-          nll <- nll - dbinom(count, size = count, prob = lambda[entry], log = TRUE)
-        } else {
-          # None were recaptured
-          nll <- nll - dbinom(0, size = count, prob = lambda[entry], log = TRUE)
+        # Marginal recapture probability (forward from entry)
+        recapture_prob <- 0
+        tmp_alive <- 1
+        for (t in (entry + 1):s) {
+          tmp_alive <- tmp_alive * phi * (1 - p)
+          recapture_prob <- recapture_prob + tmp_alive * p
         }
+
+        if (!is.na(recapture)) {
+          nll <- nll - dbinom(count, size = count, prob = recapture_prob, log = TRUE)
+        } else {
+          nll <- nll - dbinom(0, size = count, prob = recapture_prob, log = TRUE)
+        }
+
       } else {
-        # These fish were detected but not tagged — they all failed to be tagged
-        nll <- nll - dbinom(count - 0, size = count, prob = 1 - p_marked, log = TRUE)
+        nll <- nll - dbinom(count, size = count, prob = 1 - p_marked, log = TRUE)
       }
     }
 
     nll <- nll - dpois(uTot, Nsuper * psiPtot, log = TRUE)
-    print(uTot)
-    print(Nsuper * psiPtot)
     nll <- nll - dmultinom(u, prob = multP, log = TRUE)
 
     out <- list(
