@@ -102,7 +102,8 @@ d <- read.csv("data/NF_Lewis_combined-2013_2024-2025-04-18.csv") %>%
   # filter(is.na(r_wk) | r_k>0) %>%
   mutate(tag = ifelse(is.na(Tag1),FALSE,TRUE)) %>%
   group_by(t_k,r_k,t_l, r_l, tag, t_yr) %>%
-  summarise(n = n())
+  summarise(n = n()) #%>%
+  # filter((t_l<=r_l) | is.na(r_l))
 
 
 
@@ -137,7 +138,7 @@ data <- list(
   n = d$n,                   # Number of fish in each group
   u = u,          # First detections per period (for multinomial)
   uTot = sum(d$n),           # Total number of detections
-  mod = 4, #3 forward matrix (1D), 4 forward matrix (multi D)
+  mod = 1, #3 forward matrix (1D), 4 forward matrix (multi D)
   sp_pr = as.vector(sp_count$n/sum(sp_count$n))
   # # same delta setup as before
   # ...
@@ -154,7 +155,8 @@ parameters <- list(
   logit_p = 0,          # logit of detection
   log_Ntot = 10,        # log total N
   log_delta = rep(-0, data$s),# log of delta (entry intensity)
-  logit_v = rep(0, data$s)   # logit marking rate v[i]
+  logit_v = rep(0, data$s),   # logit marking rate v[i]
+  theta_par = rep(0,15-5)
 )
 
 require(RTMB)
@@ -276,36 +278,99 @@ model <- function(parms){
         }
         prob <- if (entry == s) 0 else as.numeric(alpha[1,6])
       }
-      if(mod==5){
-        n_states <- 7
-        alpha <- matrix(0, nrow = 1, ncol = n_states)
-        alpha[ t_l[i] ] <- 1  # starts alive at its tagging location
-
-        S <- diag(7)
-        for (ii in 1:max(na.omit(r_l))) {
-          for (j in 1:max(na.omit(r_l))) {
-            if(ii == j){
-              S[ii, j] <- phi  # survival
-            }
-          }
-          S[ii, 7] <- 1 - phi  # dies without being detected
-        }
-
-
-        D <- diag(7)
-        for (l in 1:5) {
-          D[l, 6] <- p   # probability of detection from location l
-          D[l, l] <- 1 - p
-        }
-
-        T <- S %*% D
-        alpha[t_l[i]] <- 1  # starts at its tagging location
-        for (t in (t_k[i] + 1):s) {
-          alpha <- alpha %*% T
-        }
-        prob <- if (entry == s) 0 else as.numeric(alpha[1,6])
-      }
-
+      # if(mod==5){
+      #   n_states <- 7
+      #   alpha <- matrix(0, nrow = 1, ncol = n_states)
+      #   alpha[ t_l[i] ] <- 1  # starts alive at its tagging location
+      #
+      #   S <- diag(7)
+      #   for (ii in 1:max(na.omit(r_l))) {
+      #     for (j in 1:max(na.omit(r_l))) {
+      #       if(ii == j){
+      #         S[ii, j] <- phi  # survival
+      #       }
+      #     }
+      #     S[ii, 7] <- 1 - phi  # dies without being detected
+      #   }
+      #
+      #
+      #   D <- diag(7)
+      #   for (l in 1:5) {
+      #     D[l, 6] <- p   # probability of detection from location l
+      #     D[l, l] <- 1 - p
+      #   }
+      #
+      #   T <- S %*% D
+      #   alpha[t_l[i]] <- 1  # starts at its tagging location
+      #   for (t in (t_k[i] + 1):s) {
+      #     alpha <- alpha %*% T
+      #   }
+      #   prob <- if (entry == s) 0 else as.numeric(alpha[1,6])
+      # }
+      #
+      # if(mod==5){
+      #
+      #   ## raw movement “scores”
+      #   ## diagonal + strictly‑upper cells: 5 + 4 + 3 + 2 + 1 = 15
+      #   # theta_par <- rep(0, 15)      # put this in your parameters list
+      #
+      #   # vec2upper <- function(v) {
+      #   #   M <- matrix(0, 5, 5)
+      #   #   M[upper.tri(M, diag = TRUE)] <- v
+      #   #   M
+      #   # }
+      #
+      #   theta_raw <- diag(5)           # 5×5 with zeros below diag
+      #
+      #   ## stabilise row‑wise to avoid overflow / underflow
+      #   icnt <- 1
+      #   for(ii in 1:5){
+      #     for(jj in 1:5){
+      #       if(jj>ii){
+      #         theta_raw[ii,jj] <- exp(theta_par[icnt])
+      #         icnt <- icnt + 1
+      #       }
+      #     }
+      #   }
+      #   for (r in 1:5) {
+      #     theta_raw[r, ] <- theta_raw[r, ]/sum(theta_raw[r, ])
+      #   }
+      #
+      #   # Psi  <- exp(theta_raw)
+      #   # Psi[lower.tri(Psi)] <- 0                    # keep them exactly zero
+      #   Psi  <- theta_raw
+      #
+      #   n_states <- 7
+      #   S <- matrix(0, 7, 7)                        # 5 live + detected + dead
+      #   for (l in 1:5) {
+      #     S[l, l:5] <-  phi * Psi[l, l:5]            # survive & (possibly) move up
+      #     S[l,     7] <- 1 - phi                     # die unseen
+      #   }
+      #
+      #   D <- diag(7)
+      #   for (l in 1:5) {
+      #     D[l, 6] <- p                             # detected at ℓ
+      #     D[l, l] <- 1 - p
+      #   }
+      #
+      #   T <- S %*% D                                # one‑step kernel
+      #
+      #   alpha[t_l[i]] <- 1  # starts at its tagging location
+      #   for (t in (t_k[i] + 1):s) {
+      #     alpha <- alpha %*% T
+      #   }
+      #
+      #
+      #   if (entry == s) prob <- 0
+      #   if(!is.na(r_l[i])){
+      #     prob <- as.numeric(alpha[1,  r_l[i]])
+      #   }
+      #   if(is.na(r_l[i])){
+      #     prob <- as.numeric(alpha[1,  6])
+      #   }
+      #   # if()
+      #   # prob <- if (entry == s) 0 else as.numeric(alpha[1,6])
+      # }
 
       # prob <- if (entry == s) 0 else as.numeric(alpha[1, 2])
       if(mod==1){
@@ -375,6 +440,7 @@ model <- function(parms){
     #Proportion of the total population that is detected. Sum of the joint psi, p, and pent
     if(mod==4){
 
+      print("**************************")
       n_states <- 7                # 5 live locations + detected + dead
 
       ## build the transition once --------------------------
@@ -434,6 +500,51 @@ model <- function(parms){
     }
       if(mod==5){
 
+        ## raw movement “scores”
+        ## diagonal + strictly‑upper cells: 5 + 4 + 3 + 2 + 1 = 15
+        # theta_par <- rep(0, 15)      # put this in your parameters list
+
+        theta_raw <- diag(5)           # 5×5 with zeros below diag
+
+        ## stabilise row‑wise to avoid overflow / underflow
+        icnt <- 1
+        for(ii in 1:5){
+          for(jj in 1:5){
+            if(jj>ii){
+              theta_raw[ii,jj] <- exp(theta_par[icnt])
+              icnt <- icnt + 1
+            }
+          }
+        }
+        for (r in 1:5) {
+          theta_raw[r, ] <- theta_raw[r, ]/sum(theta_raw[r, ])
+        }
+
+        # Psi  <- exp(theta_raw)
+        # Psi[lower.tri(Psi)] <- 0                    # keep them exactly zero
+        Psi  <- theta_raw
+
+        n_states <- 7
+        S <- diag(7)                        # 5 live + detected + dead
+        for (l in 1:5) {
+          S[l, l:5] <-  phi * Psi[l, l:5]            # survive & (possibly) move up
+          S[l,     7] <- 1 - phi                     # die unseen
+        }
+
+        D <- diag(7)
+        for (l in 1:5) {
+          D[l, 6] <- p                             # detected at ℓ
+          D[l, l] <- 1 - p
+        }
+
+        T <- S %*% D                                # one‑step kernel
+
+        alpha[t_l[i]] <- 1  # starts at its tagging location
+        for (t in (t_k[i] + 1):s) {
+          alpha <- alpha %*% T
+        }
+
+        RTMB::REPORT(theta_raw)
         pent <- delta_w / sum(delta_w)  # entry probabilities (per time period)
         # pent2 <- pent %o% sp_pr
         # psi <- numeric(s)
@@ -445,29 +556,6 @@ model <- function(parms){
         alpha <- matrix(0, nrow = 1, ncol = n_states)
         alpha[ t_l[i] ] <- 1  # starts alive at its tagging location
 
-        S <- diag(7)
-        for (i in 1:max(na.omit(r_l))) {
-          for (j in 1:max(na.omit(r_l))) {
-            if(i == j){
-              S[i, j] <- phi  # survival
-            }
-          }
-          S[i, 7] <- 1 - phi  # dies without being detected
-        }
-
-
-        D <- diag(7)
-        for (l in 1:5) {
-          D[l, 6] <- p   # probability of detection from location l
-          D[l, l] <- 1 - p
-        }
-
-        T <- S %*% D
-        alpha[t_l[i]] <- 1  # starts at its tagging location
-        for (t in (t_k[i] + 1):s) {
-          alpha <- alpha %*% T
-        }
-        prob2 <- if (entry == s) 0 else as.numeric(alpha[1,6])
 
         for(j in 1:5){
           tmp <- matrix(c(pent[1]*sp_pr[j], 0,0,0,0,0, 0), nrow = 1)
@@ -498,8 +586,9 @@ model <- function(parms){
         print(sum(temp2))
         print("multP second")
         print(multP2)
+        RTMB::REPORT(Psi)
 
-
+        nll <- nll - sum(dnorm(theta_par, 0, 2, log = TRUE))
       }
       if(mod<4){
       #probability of entry
@@ -586,7 +675,7 @@ model <- function(parms){
     }
 
     lambda_matrix4 <- numeric(s)
-    # if(mod==4){
+    if(mod==4){
       n_states <- 7
       for (entry in 1:(s-1)) {
         alpha <- matrix(0, nrow = 1, ncol = n_states)
@@ -615,8 +704,47 @@ model <- function(parms){
         }
         lambda_matrix4[entry] <- alpha[1, 6]
       }
-    # }
+    }
 
+    if(mod==5){
+
+        ## raw movement “scores”
+        ## diagonal + strictly‑upper cells: 5 + 4 + 3 + 2 + 1 = 15
+        # theta_par <- rep(0, 15)      # put this in your parameters list
+
+        theta_raw <- diag(5)           # 5×5 with zeros below diag
+
+        ## stabilise row‑wise to avoid overflow / underflow
+        icnt <- 1
+        for(ii in 1:5){
+          for(jj in 1:5){
+            if(jj>ii){
+              theta_raw[ii,jj] <- exp(theta_par[icnt])
+              icnt <- icnt + 1
+            }
+          }
+        }
+        for (r in 1:5) {
+          theta_raw[r, ] <- theta_raw[r, ]/sum(theta_raw[r, ])
+        }
+
+        # Psi  <- exp(theta_raw)
+        # Psi[lower.tri(Psi)] <- 0                    # keep them exactly zero
+        Psi  <- theta_raw
+
+        n_states <- 7
+        S <- diag(7)                        # 5 live + detected + dead
+        for (l in 1:5) {
+          S[l, l:5] <-  phi * Psi[l, l:5]            # survive & (possibly) move up
+          S[l,     7] <- 1 - phi                     # die unseen
+        }
+
+        D <- diag(7)
+        for (l in 1:5) {
+          D[l, 6] <- p                             # detected at ℓ
+          D[l, l] <- 1 - p
+        }
+    }
     print("scalar")
     print(lambda_scalar)
     print("matrix")
